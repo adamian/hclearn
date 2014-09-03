@@ -7,11 +7,14 @@ import unittest
 import re
 import makeMaze as mm
 
-#rootFolder = "/Users/alansaul/Work/CompSci/SURE/hclearn_alan/"
-rootFolder = "/Users/mathew/work/hclearn/"
+rootFolder = "/Users/alansaul/Work/CompSci/SURE/hclearn_alan/"
+#rootFolder = "/home/chris/project/hclearn/"
 
 #This is the folder being used by makeSURFRepresentation to create the surf features for learnWeights
 prefixFolder = rootFolder + "DCSCourtyard/"
+
+#use folder with google maps images of Division and Carver street Sheffield
+#prefixFolder = rootFolder + "DivisionCarver/"
 
 class SURFExtractor(object):
     directions = ['N','E','S','W']
@@ -35,7 +38,7 @@ class SURFExtractor(object):
             for file in os.listdir(folder):
                 parts = re.split("[-,\.]", file)
                 #Test that it is (NUM-NUM-DIRECTION-whatever)
-                if len(parts)>=2 and parts[0].isdigit() and parts[0].isdigit() and (parts[2][0].isalpha and len(parts[2]) == 1):
+                if len(parts)>=2 and parts[0].isdigit() and parts[1].isdigit() and (parts[2][0].isalpha and len(parts[2]) == 1):
                     if parts[2][0] in self.directions:
                         key = ((int(parts[0]), int(parts[1])),parts[2])
                         #If it doesnt already exist, make this key
