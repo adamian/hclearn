@@ -10,6 +10,7 @@ from makeMaze import makeMaze
 from os import sys
 import learnWeights
 import sys
+import cPickle as cPickle
 
 if len(sys.argv) == 3:
     b_useNewDG = (sys.argv[1] == "True")
@@ -29,6 +30,7 @@ T=3000   #trained on 30000   #better to have one long path than mult epochs on o
 b_learnWeights=True
 b_plot=True
 b_inference=True
+tr_epochs=100
 
 [dictSenses, dictAvailableActions, dictNext] = makeMaze(N_mazeSize, b_useNewDG)     #make maze, including ideal percepts at each place
 dictGrids = DictGrids()
@@ -39,7 +41,7 @@ path = Paths(dictNext,N_mazeSize, T)          #a random walk through the maze --
 if b_learnWeights:
     print "TRAINING..."
     #ALAN: Careful this won't exist if b_learnDGWeights is not true (I.e. we're not using SURF features
-    dghelper = learnWeights.learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b_learnIdeal=True, b_learnTrained=True, b_learnDGWeights=b_useNewDG, learningRate=learningRate)
+    dghelper = learnWeights.learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b_learnIdeal=True, b_learnTrained=True, b_learnDGWeights=b_useNewDG, learningRate=learningRate, tr_epochs=tr_epochs)
 else:
     dghelper=None
 

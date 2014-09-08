@@ -6,9 +6,26 @@ import pyflann as flann
 import unittest
 import re
 import makeMaze as mm
+import os.path
 
-rootFolder = "/Users/alansaul/Work/CompSci/SURE/hclearn_alan/"
-#rootFolder = "/home/chris/project/hclearn/"
+printMessages = False
+
+# Set the root folder. You have two options:
+# a) Put a file with name rootFolder.txt inside your visible path. 
+#    It has to contain the full path of your root folder.
+#    Do not sync with git this file (as it's different for every user)
+# b) Do nothing, the code will find the current directory and use it as the default root folder.
+rootFolderName = 'rootFolder.txt'
+if os.path.isfile(rootFolderName):
+    with open(rootFolderName,'r') as f:
+        rootFolder = f.read()
+    assert(f.closed)
+else:
+    #rootFolder = "/Users/alansaul/Work/CompSci/SURE/hclearn_alan/"
+    #rootFolder = "/home/chris/project/hclearn/"
+    rootFolder = os.path.dirname(os.path.abspath(__file__)) + '/'
+
+
 
 #This is the folder being used by makeSURFRepresentation to create the surf features for learnWeights
 prefixFolder = rootFolder + "DCSCourtyard/"
@@ -364,7 +381,8 @@ def makeSURFRepresentation():
     se.mergeThreshold = 0.06 #0.05
     se.matchThreshold = 0.2
     se.generateFeatureRepresentations(0)
-    print("FEATUREDESCDICT: %s" % se.featuresDescDict)
+    if printMessages:
+        print("FEATUREDESCDICT: %s" % se.featuresDescDict)
     return se.featuresDescDict
 
 def compareDicts(dict1,dict2):

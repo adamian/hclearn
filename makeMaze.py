@@ -2,6 +2,8 @@ import numpy as np
 from SURFExtractor import makeSURFRepresentation
 from location import Location
 
+printMessages = False
+
 #an ideal set of EC responses, to a particular agent state (excluding lightAhead)
 #TODO: maybe classes should rep states in simplest possible way, and only convert to cells when requested??
 class Senses:
@@ -53,10 +55,11 @@ def findSurfs(x,y,ith,SURFdict):
     #Careful, there could be multiple images per location/direction mapping!
     if key in SURFdict.keys():
         surfFeatures = SURFdict[((x,y),direction)]
-        print("Features for key: %s\n%s" % (key, surfFeatures))
-        #FIX: Make this work for multiple images of the same location?
-        #Currently just returns the first image in the dictionary
-        print("Using the second image:\n%s" % surfFeatures[1])
+        if printMessages:
+            print("Features for key: %s\n%s" % (key, surfFeatures))
+            #FIX: Make this work for multiple images of the same location?
+            #Currently just returns the first image in the dictionary
+            print("Using the second image:\n%s" % surfFeatures[1])
         #If there is more than one surf feature for this direction, choose a different one from the one which it was trained on
         if len(surfFeatures) > 1:
             return surfFeatures[1]
@@ -76,7 +79,8 @@ def makeMaze(n, b_useNewDG=False):
     if b_useNewDG:
         print("Generating SURF representations...")
         surfDict = makeSURFRepresentation()
-        print("SURFDICTKEYS:%s" % surfDict.keys())
+        if printMessages:
+            print("SURFDICTKEYS:%s" % surfDict.keys())
     dictSenses=dict()           # sensory info for a given location 
     dictAvailableActions=dict() # available actions for a given location
     dictNext=dict()             # where you would end up next having taken a given action (M.E. I think!)

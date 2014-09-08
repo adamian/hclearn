@@ -13,7 +13,7 @@ def fuse2(p1,p2):
     return 1.0 / (1.0 +   ((1-p1)*(1-p2)/(p1 * p2)  ))
 
 
-def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b_learnIdeal=True, b_learnTrained=False, b_learnDGWeights=True, learningRate=0.01):
+def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b_learnIdeal=True, b_learnTrained=False, b_learnDGWeights=True, learningRate=0.01,tr_epochs=10):
     dghelper=None
     #Learn DG weights when you have visual input
     if b_learnDGWeights:
@@ -104,8 +104,9 @@ def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b
 
         ### train with proper wake-sleep (no peeking at hid_t, though hid_{t-1} is OK )
 
+        print 'Optimising weights for %d epochs!'%(tr_epochs)
         #FIXME: TURN BACK TO 1000 or so!
-        for epoch in range(0,10):
+        for epoch in range(0,tr_epochs):
             
             err_epoch = 0  #accumulator
 
