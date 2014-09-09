@@ -74,11 +74,11 @@ def findSurfs(x,y,ith,SURFdict):
         #raise NameError("There isn't a surf feature description for: %s" % (key,))
 
 #n = number of locations per arm (so that (n,n) is the center point)
-def makeMaze(n, b_useNewDG=False):
+def makeMaze(n, b_useNewDG=False, prefixFolder = None):
     surfDict=None
     if b_useNewDG:
         print("Generating SURF representations...")
-        surfDict = makeSURFRepresentation()
+        surfDict = makeSURFRepresentation(prefixFolder)
         if printMessages:
             print("SURFDICTKEYS:%s" % surfDict.keys())
     dictSenses=dict()           # sensory info for a given location 

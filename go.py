@@ -10,7 +10,8 @@ from makeMaze import makeMaze
 from os import sys
 import learnWeights
 import sys
-import cPickle as cPickle
+import cPickle as pickle
+import os.path
 
 if len(sys.argv) == 3:
     b_useNewDG = (sys.argv[1] == "True")
@@ -25,14 +26,47 @@ print("LR:%f" % learningRate)
 
 np.set_printoptions(threshold=sys.maxint)         #=format short in matlab
 
+# Set the root folder. You have two options:
+# a) Put a file with name rootFolder.txt inside your visible path. 
+#    It has to contain the full path of your root folder.
+#    Do not sync with git this file (as it's different for every user)
+# b) Do nothing, the code will find the current directory and use it as the default root folder.
+rootFolderName = 'rootFolder.txt'
+if os.path.isfile(rootFolderName):
+    with open(rootFolderName,'r') as f:
+        rootFolder = f.read().rstrip('\n')
+    assert(f.closed)
+else:
+    rootFolder = os.path.dirname(os.path.abspath(__file__)) + '/'
+
+#----- Configuration -------------
 N_mazeSize=3
 T=3000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
 tr_epochs=100
+# If true then it'll attempt to load the maze (corresponding to the same set of configurations) 
+# from a file. If the file doesn't exist, the algorithm will save the maze for future use.
+# Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
+pickle_maze = True
+imFolder = "DCSCourtyard"
+fullImageFolder = rootFolder + imFolder + "/"
+#-------------------------------------------
 
-[dictSenses, dictAvailableActions, dictNext] = makeMaze(N_mazeSize, b_useNewDG)     #make maze, including ideal percepts at each place
+pickled_maze_name = "maze_SEED" + str(SEED) + "_N" + str(N_mazeSize) + "_DG" + str(int(b_useNewDG)) +  "_imdir" + imFolder + ".pickle"
+if pickle_maze and os.path.isfile(pickled_maze_name):
+    saved_maze = pickle.load( open( pickled_maze_name, "rb" ) )
+    dictSenses = saved_maze[0]
+    dictAvailableActions = saved_maze[1]
+    dictNext = saved_maze[2]
+    print "# Found and loaded pickled maze!"
+else:
+    [dictSenses, dictAvailableActions, dictNext] = makeMaze(N_mazeSize, b_useNewDG, prefixFolder=fullImageFolder)     #make maze, including ideal percepts at each place
+    if pickle_maze:
+        saved_maze = [dictSenses, dictAvailableActions, dictNext]
+        pickle.dump( saved_maze, open( pickled_maze_name, "wb" ) )
+
 dictGrids = DictGrids()
 path = Paths(dictNext,N_mazeSize, T)          #a random walk through the maze -- a list of world states (not percepts)
 

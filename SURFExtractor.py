@@ -18,17 +18,11 @@ printMessages = False
 rootFolderName = 'rootFolder.txt'
 if os.path.isfile(rootFolderName):
     with open(rootFolderName,'r') as f:
-        rootFolder = f.read()
+        rootFolder = f.read().rstrip('\n')
     assert(f.closed)
 else:
-    #rootFolder = "/Users/alansaul/Work/CompSci/SURE/hclearn_alan/"
-    #rootFolder = "/home/chris/project/hclearn/"
     rootFolder = os.path.dirname(os.path.abspath(__file__)) + '/'
 
-
-
-#This is the folder being used by makeSURFRepresentation to create the surf features for learnWeights
-prefixFolder = rootFolder + "DCSCourtyard/"
 
 #use folder with google maps images of Division and Carver street Sheffield
 #prefixFolder = rootFolder + "DivisionCarver/"
@@ -374,7 +368,10 @@ class TestExtractor(unittest.TestCase):
         pass
 
 
-def makeSURFRepresentation():
+def makeSURFRepresentation(prefixFolder=None):
+    if prefixFolder is None:
+        #This is the folder being used by makeSURFRepresentation to create the surf features for learnWeights
+        prefixFolder = rootFolder + "DCSCourtyard/"
     #Make all things SURFY (its dictionary) and give back to makeMaze
     se = SURFExtractor(prefixFolder)
     #FIX: If two photos are exactly the same, this will fail as they will be merged!
