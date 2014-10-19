@@ -41,16 +41,16 @@ else:
 
 #----- Configuration -------------
 N_mazeSize=3
-T=3000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
-tr_epochs=100
+tr_epochs=10
 # If true then it'll attempt to load the maze (corresponding to the same set of configurations) 
 # from a file. If the file doesn't exist, the algorithm will save the maze for future use.
 # Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
-pickle_maze = True
-imFolder = "DCSCourtyard"
+pickle_maze = True # True
+imFolder = "DivisionCarver" #DCSCourtyard"
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
 
@@ -67,6 +67,7 @@ else:
         saved_maze = [dictSenses, dictAvailableActions, dictNext]
         pickle.dump( saved_maze, open( pickled_maze_name, "wb" ) )
 
+# DictGrids is from location.py. Sets up a dictionary of grid cell locations from XY locations (I think!)
 dictGrids = DictGrids()
 path = Paths(dictNext,N_mazeSize, T)          #a random walk through the maze -- a list of world states (not percepts)
 
@@ -160,3 +161,30 @@ if b_plot:
             fn = 'outPC/cell'+str(i)
             savefig(fn)
 
+
+# "Test" phase (new path, but reuse training weights etc)
+T_test = 100
+testPath = Paths(dictNext,N_mazeSize, T_test)          #a random walk through the maze -- a list of world states (not percepts)
+(ecs_gnd, dgs_gnd, ca3s_gnd) = testPath.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path, for plotting only
+
+if b_inference:
+    print "INFERENCE..."
+
+    random.seed(SEED) ;  np.random.seed(SEED)
+    hist1    = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_t, WR_t, WS_t, WO_t, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Learned", b_learn=b_learn)
+    #HOOK test with ground truths on and off
+
+    random.seed(SEED) ;  np.random.seed(SEED)
+    hist2   = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_rand,  WR_rand,  WS_rand, WO_rand, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Random", b_learn=b_learn)
+
+    random.seed(SEED) ;  np.random.seed(SEED)
+    hist3 = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_ideal, WR_ideal, WS_ideal, WO_ideal, dghelper, b_obsOnly=b_obsOnly,  b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids, b_useSub=b_useSub, str_title="Handset", b_learn=b_learn)
+print "DONE"
+
+if b_plot:
+    anote = "obsonly%s_gndCA3%s_gndgrid%s_sub%s_bl%s_MERGED0102_SUBT026" % (b_obsOnly, b_usePrevGroundTruthCA3, b_useGroundTruthGrids, b_useSub, b_learn)
+    (lost1,xys1) = plotResults(testPath, hist1, dictGrids, b_useNewDG, learningRate, note=anote)
+    (lost2,xys2) = plotResults(testPath, hist2, dictGrids, b_useNewDG, learningRate, note=anote)
+    (lost3,xys3) = plotResults(testPath, hist3, dictGrids, b_useNewDG, learningRate, note=anote)
+    plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
+    show()
