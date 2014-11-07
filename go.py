@@ -13,12 +13,15 @@ import sys
 import cPickle as pickle
 import os.path
 
-if len(sys.argv) == 3:
-    b_useNewDG = (sys.argv[1] == "True")
-    learningRate = float(sys.argv[2])
-else:
-    b_useNewDG = True
-    learningRate = 0.01
+#if len(sys.argv) == 3:
+#    b_useNewDG = (sys.argv[1] == "True")
+#    learningRate = float(sys.argv[2])
+#else:
+#    b_useNewDG = True
+#    learningRate = 0.01
+
+b_useNewDG = True
+learningRate = 0.01
     
 print("Sys:%d" % len(sys.argv))
 print("DG:%s" % b_useNewDG)
@@ -39,6 +42,8 @@ if os.path.isfile(rootFolderName):
 else:
     rootFolder = os.path.dirname(os.path.abspath(__file__)) + '/'
 
+# Run generate_map_from_streetview.py if you want to get the streetview pics
+
 #----- Configuration -------------
 N_mazeSize=3
 T=30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
@@ -50,7 +55,7 @@ tr_epochs=10
 # from a file. If the file doesn't exist, the algorithm will save the maze for future use.
 # Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
 pickle_maze = True # True
-imFolder = "DivisionCarver" #DCSCourtyard"
+imFolder = "DivisionCarver" #"divistion_street_1" #"DivisionCarver" #DCSCourtyard"
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
 
@@ -91,10 +96,17 @@ WO_ideal = np.load('WO.npy')
 WS_ideal = np.load('WS.npy')
 WB_ideal = np.load('WB.npy')
 
-WR_rand = 0+ 0*np.random.random(WR_ideal.shape)
-WB_rand = 0+ 0*np.random.random(WB_ideal.shape)
-WO_rand = 0+ 0*np.random.random(WO_ideal.shape)
-WS_rand = 0+ 0*np.random.random(WS_ideal.shape)
+# This is not random, it's something like the mean?
+WR_rand0 = 0+ 0*np.random.random(WR_ideal.shape)
+WB_rand0 = 0+ 0*np.random.random(WB_ideal.shape)
+WO_rand0 = 0+ 0*np.random.random(WO_ideal.shape)
+WS_rand0 = 0+ 0*np.random.random(WS_ideal.shape)
+
+WR_rand = np.random.random(WR_ideal.shape)
+WB_rand = np.random.random(WB_ideal.shape)
+WO_rand = np.random.random(WO_ideal.shape)
+WS_rand = np.random.random(WS_ideal.shape)
+
 
 b_inference = True
 
@@ -117,6 +129,9 @@ if b_inference:
     random.seed(SEED) ;  np.random.seed(SEED)
     hist3 = makeMAPPredictions(path,dictGrids, dictSenses, WB_ideal, WR_ideal, WS_ideal, WO_ideal, dghelper, b_obsOnly=b_obsOnly,  b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids, b_useSub=b_useSub, str_title="Handset", b_learn=b_learn)
 
+    random.seed(SEED) ;  np.random.seed(SEED)
+    hist4   = makeMAPPredictions(path,dictGrids, dictSenses, WB_rand0,  WR_rand0,  WS_rand0, WO_rand0, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Random0", b_learn=b_learn)
+
 
 print "DONE"
 
@@ -132,11 +147,13 @@ if b_plot:
     (lost1,xys1) = plotResults(path, hist1, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost2,xys2) = plotResults(path, hist2, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost3,xys3) = plotResults(path, hist3, dictGrids, b_useNewDG, learningRate, note=anote)
+    (lost4,xys4) = plotResults(path, hist4, dictGrids, b_useNewDG, learningRate, note=anote)
 
 #    savefig('out/run.eps')
  
-    plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
- 
+    #plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
+    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote)
+
     ##figure()
     ##drawMaze()
     ##hold(True)
@@ -162,7 +179,8 @@ if b_plot:
             savefig(fn)
 
 
-# "Test" phase (new path, but reuse training weights etc)
+
+# --------- "Test" phase (new path, but reuse training weights etc)
 T_test = 100
 testPath = Paths(dictNext,N_mazeSize, T_test)          #a random walk through the maze -- a list of world states (not percepts)
 (ecs_gnd, dgs_gnd, ca3s_gnd) = testPath.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path, for plotting only
