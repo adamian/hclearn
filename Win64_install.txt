@@ -1,0 +1,27 @@
+Installation instructions (Luke Boorman August 2014):
+
+Pre-install dependencies:
+
+A) Computer Vision code: OpenCV, works with the latest version OpenCV 2.4.9. http://opencv.org/downloads.html
+The code uses the older cv c libraries rather than the newer cv2, but these are included inside cv2.
+Extract and copy the cv2.pyd from: \opencv\build\python\2.7\x64\cv2.pyd to: \Anaconda\Lib\site-packages\cv2.pyd
+I altered the code in SURFExtractor.py to use import cv2.cv as cv in place of (comment this line out): import cv
+
+B) Fast library approximate nearest negighbours: flann, works with 1.8.4 http://www.cs.ubc.ca/research/flann/
+32bit windows: cmake select python and c libraries options, then build, will install to c:\program files (x86)\flann move built lib files to location in setup.py and run using cmd console: python setup.py install
+test in python with: import pyflann
+Windows 64bit: Using Micrsoft Visual studio 2012 x64 with cmake will not work cmake -> select python and c libraries (Matlab not needed here) open \flann-1.8.4-src\src\cpp\flann\util\serialization.h Add in new code at line 94, below BASIC_TYPE_SERIALIZER(bool);
+ifdef _MSC_VER
+BASIC_TYPE_SERIALIZER(unsigned __int64);
+endif
+Run the compiler with 'release', this should install files to c:\program files\flann, but will fail on install to python!
+The setup.py at C:\Program Files\flann\share\flann\python\setup.py will have the incorrect path to the folder with all the files built using visual studio. I moved the files into this directory e.g. from \flann-1.8.4-src\build\lib\Release to \flann-1.8.4-src\build\lib
+run a cmd console goto the setup.py dir (C:\Program Files\flann\share\flann\python\setup.py) and run: python setup.py install
+This should run without errors!!!!
+test in python by typing import pyflann
+error saying cannot load dll will show something has gone wrong (e.g. dll not found or 32bit!)
+
+For python in Anaconda I switched off inline plotting
+
+Should now run....
+"""
