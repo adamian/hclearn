@@ -15,13 +15,19 @@ import cv2
 import os
 import glob
 from win32api import GetSystemMetrics
+from collections import Counter
 
-# Path to images
-pathname = 'D:/robotology/streetview_icub/division_street_1'
+# Path to images FORWARD SLASHES
+pathname = 'D:/robotology/hclearn/division_street_1'
 heading_index='NESW' #N=0, E=1, S=2, W=3
 window_name='Streetview'
-
 maze_map='Maze_Map'
+place_cell_map='Place_cell_Map'
+
+# Choose start location (division street)
+location_x=5
+location_y=15
+direction='E'
 
 ##### Find matching 3 files to display
 def find_next_set_images(location_x,location_y,heading,file_database_sorted,picture_name_list):
@@ -175,15 +181,15 @@ def make_grid_index(x=8,y=8, pixel_width=200):
             squares_out[ix,iy,:]=square(ix, iy)    
     return squares_out
     
-def plot_exisiting_locations_on_grid(map_template,squares_grid,useable_grid_locations):    
+def plot_exisiting_locations_on_grid(map_data,squares_grid,useable_grid_locations):    
     # Plot white boxes onto grid where locations exist
     # Work out middle location!
     min_x=useable_grid_locations[0].min()
     min_y=useable_grid_locations[1].min() 
     for current_loc in range(0,useable_grid_locations[0].size): 
         sq=squares_grid[useable_grid_locations[0][current_loc]-min_x,useable_grid_locations[1][current_loc]-min_y,:]
-        cv2.rectangle(map_template,tuple(sq[0:2]),tuple(sq[2:4]),(255,255,255),-1)
-    return map_template
+        cv2.rectangle(map_data,tuple(sq[0:2]),tuple(sq[2:4]),(255,255,255),-1)
+    return map_data
     
     
 def plot_current_position_on_map(map_template,useable_grid_locations,current_x,current_y):    
@@ -192,13 +198,17 @@ def plot_current_position_on_map(map_template,useable_grid_locations,current_x,c
     min_y=useable_grid_locations[1].min()     
     sq=squares_grid[current_x-min_x,current_y-min_y,:]
     map_image_display=np.copy(map_template); # FORCE COPY SO IT DOESNT KEEP OLD MOVES!!!!!
-    cv2.rectangle(map_image_display,tuple(sq[0:2]),tuple(sq[2:4]),(0,0,255),-1)    
-    map_image_display=np.rot90(np.flipud(map_image_display),1)
-    # Show north
-    #textsize=cv2.getTextSize(direction,cv2.FONT_HERSHEY_SIMPLEX,0.8,2)
-    #cv2.fillConvexPoly(map_image_display,int(arrow_dir_pts/2),(0,0,255))
-    #cv2.putText(map_image_display, direction, (0+(textsize[0][1]/2),\
-    #    30+int(textsize[1]/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.8,(0,0,255),2);              
+    cv2.rectangle(map_image_display,tuple(sq[0:2]),tuple(sq[2:4]),(0,0,255),-1)
+    
+    
+    map_image_display=flip_rotate_color_image(map_image_display,heading_index.find(direction))
+    
+    #map_image_display=np.copy(np.rot90(np.flipud(map_image_display),heading_index.find(direction)))
+    # Show direction
+    textsize=cv2.getTextSize(direction,cv2.FONT_HERSHEY_SIMPLEX,0.8,2)
+    cv2.fillConvexPoly(map_image_display,arrow_dir_pts,(0,0,255))
+    cv2.putText(map_image_display,direction,(int((textsize[0][1]/2)-2),int(30+(textsize[1]/2))), cv2.FONT_HERSHEY_SIMPLEX, 0.8,(0,0,255),2); 
+#             
     cv2.imshow(maze_map,map_image_display)
     return map_image_display
 
@@ -210,10 +220,35 @@ def plot_old_position_on_map(map_template,useable_grid_locations,current_x,curre
     cv2.rectangle(map_template,tuple(sq[0:2]),tuple(sq[2:4]),(0,255,0),-1)                  
     return map_template
 
-
-
-
-
+# Plot map with place cell id's
+def plot_place_cell_id_on_map(map_data,place_cell_id):    
+    # Plot red box where vehicle is....    
+    min_x=place_cell_id[1].min()
+    min_y=place_cell_id[2].min()
+    map_out=np.copy(map_data); # FORCE COPY SO IT DOESNT KEEP OLD MOVES!!!!!
+    map_out=flip_rotate_color_image(map_out,0)
+    # Loop through each place id
+    for  current_place in range(0,place_cell_id[0].size): 
+        sq=squares_grid[place_cell_id[1][current_place]-min_x,place_cell_id[2][current_place]-min_y,:]        
+        # Place number at bottom of square in middle.... 
+        x_pos=sq[0]#+np.round(np.diff([sq[2],sq[0]])/2)
+        y_pos=pixel_width-sq[1]+np.round(np.diff([sq[3],sq[1]])/2)
+        cv2.putText(map_out, str(int(place_cell_id[0][current_place])), (int(x_pos),int(y_pos)), cv2.FONT_HERSHEY_SIMPLEX, 0.3,(0,0,255),1);
+  
+    
+   
+    textsize=cv2.getTextSize('N',cv2.FONT_HERSHEY_SIMPLEX,0.8,2)
+    cv2.fillConvexPoly(map_out,np.abs(np.array([[pixel_width,0],[pixel_width,0],[pixel_width,0]])-arrow_dir_pts),(0,0,255))
+    cv2.putText(map_out, 'N', (pixel_width-int((textsize[0][1]/2)+10),int(30+(textsize[1]/2))), cv2.FONT_HERSHEY_SIMPLEX, 0.8,(0,0,255),2); 
+             
+    cv2.imshow(place_cell_map,map_out)
+    return map_out
+  
+  # Flip image (mirror) then rotate anti clockwise by @ 90 degrees
+def flip_rotate_color_image(image,angles_90):
+    for current_color in range(0,image[0,0,:].size):
+        image[:,:,current_color]=np.rot90(np.flipud(image[:,:,current_color]),angles_90)
+    return image
 
 ###### START OF MAIN
     
@@ -321,31 +356,30 @@ file_database_sorted=np.sort(file_database,order=['x_loc','y_loc','heading'])
 # First Image
 #cv2.imshow('FRED', img_file[1])
 
-# Choose start location
-location_x=0
-location_y=0
-direction='E'
-
-
 
 ### Build map from google data
 ## Making a Map build grip index 
-pixel_width=200
+pixel_width=600#200
 
 ## Make grid index x,y, [coords]
 squares_grid=make_grid_index(file_database_sorted['x_loc'].ptp(),file_database_sorted['y_loc'].ptp(), pixel_width)
 ## Make squares with map data white
 file_database_north=file_database[np.where(file_database['heading']==0)]
-useable_grid_locations=[file_database_north['x_loc'],file_database_north['y_loc']]
-
+# Only get one heading from each location .... ie NORTH only
+useable_grid_locations=np.array([file_database_north['x_loc'],file_database_north['y_loc']])
+## Set up image arrays for maps.....
 map_template=np.zeros((pixel_width,pixel_width,3),dtype='u1') # default black
 map_image_display=np.zeros((pixel_width,pixel_width,3),dtype='u1') # default black
 
+## Windows to display graphics
+# Updated map of maze and current location
 cv2.namedWindow(maze_map)
+# Main image display
 cv2.namedWindow(window_name)
+# Layout of place cells
+cv2.namedWindow(place_cell_map)
 
 map_template=plot_exisiting_locations_on_grid(map_template,squares_grid,useable_grid_locations)
-
 
 ### Initialise main image windows
 heading_ind=heading_index.find(direction)
@@ -359,71 +393,111 @@ if image_found==0:
 display_image(resized_img, image_title, available_directions_index, new_heading_ind)
 ## ALTERNATIVE:: get NESW for location
 
+## Add in place locations.
+## Build empty array with x and y values...
+place_cell_id=np.array([np.zeros(useable_grid_locations[0].size,dtype='i2'),useable_grid_locations[0],useable_grid_locations[1]])
+
+
+# 1. Order using longest x road (e.g. division street) => has most identical y values
+most_y=Counter(place_cell_id[2]).most_common()
+place_cell_id_x=np.zeros(useable_grid_locations[0].size,dtype='i2')
+# for each counter output.... run through 
+place_cell_counter=0
+for current_count_block in range(0,len(most_y)):
+   line_locations_x=np.where(place_cell_id[2]==most_y[current_count_block][0])
+   for current_map_tile in line_locations_x[0]:
+       #print str(current_count_block), str(current_map_tile)
+       place_cell_id_x[current_map_tile]=place_cell_counter
+       place_cell_counter+=1
+       
+x_ok=np.where(np.diff(place_cell_id[1][place_cell_id_x])!=0)       
+place_cell_id[0]=place_cell_id_x
+       
+## 2. Order using verticals (y) => longest x
+#most_x=Counter(place_cell_id[1]).most_common()
+#place_cell_id_y=np.zeros(useable_grid_locations[0].size,dtype='i2')
+#place_cell_counter=0
+#for current_count_block in range(0,len(most_x)):
+#   line_locations_y=np.where(place_cell_id[1]==most_x[current_count_block][0])
+#   for current_map_tile in line_locations_y[0]:
+#       #print str(current_count_block), str(current_map_tile)
+#       place_cell_id_y[current_map_tile]=place_cell_counter
+#       place_cell_counter+=1
+
+
+
+# plot these on the map
+map_place_out=plot_place_cell_id_on_map(map_template,place_cell_id)
 
 ### Put current location on map
 map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,location_x,location_y)
 
 
-### Wait for key to update
-while True:
-    k = cv2.waitKey(0) & 0xFF
-    if k == 27: # ESC
-        cv2.destroyAllWindows()
-        break
-#    elif k == ord('s'):
-#        cv2.imwrite('/Users/chris/foo.png', gray_img)
-#        cv2.destroyAllWindows()
-#        break
-    elif k == ord('w'): # w=forwards
-        #image = image[::-1]
-        old_location_x=new_location_x
-        old_location_y=new_location_y
-        new_location_x +=direction_vector[0]
-        new_location_y +=direction_vector[1]
-        resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
-        if image_found==0:
-            print "No image"
-            new_location_x -=direction_vector[0]
-            new_location_y -=direction_vector[1]
-        else:
-            display_image(resized_img, image_title, available_directions_index, new_heading_ind)
-            map_template=plot_old_position_on_map(map_template,useable_grid_locations,old_location_x,old_location_y)
-            map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
-    elif k == ord('s'): # s= backwards
-        #image = image[::-1]
-        old_location_x=new_location_x
-        old_location_y=new_location_y
-        new_location_x -=direction_vector[0]
-        new_location_y -=direction_vector[1]
-        resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
-        if image_found==0:
-            print "No image"
+
+
+try:
+    ### Wait for key to update
+    while True:
+        k = cv2.waitKey(0) & 0xFF
+        if k == 27: # ESC
+            cv2.destroyAllWindows()
+            break
+    #    elif k == ord('s'):
+    #        cv2.imwrite('/Users/chris/foo.png', gray_img)
+    #        cv2.destroyAllWindows()
+    #        break
+        elif k == ord('w'): # w=forwards
+            #image = image[::-1]
+            old_location_x=new_location_x
+            old_location_y=new_location_y
             new_location_x +=direction_vector[0]
             new_location_y +=direction_vector[1]
-        else:
-            display_image(resized_img, image_title, available_directions_index, new_heading_ind)
-            map_template=plot_old_position_on_map(map_template,useable_grid_locations,old_location_x,old_location_y)
-            map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
-    elif k == ord('a'): # ,<= left
-        #image = image[::-1]
-        #new_location_x -=1
-        new_heading_ind -=1
-        resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
-        if image_found==0:
-            print "No image"
-            #new_location_x +=1
-        else:
-            display_image(resized_img, image_title, available_directions_index, new_heading_ind)
-            #map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
-    elif k == ord('d'): # .>= right
-        #image = image[::-1]
-        #new_location_x -=1
-        new_heading_ind +=1
-        resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
-        if image_found==0:
-            print "No image"
-            #new_location_x +=1
-        else:
-            display_image(resized_img, image_title, available_directions_index, new_heading_ind)
-            #map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
+            resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
+            if image_found==0:
+                print "No image"
+                new_location_x -=direction_vector[0]
+                new_location_y -=direction_vector[1]
+            else:
+                display_image(resized_img, image_title, available_directions_index, new_heading_ind)
+                map_template=plot_old_position_on_map(map_template,useable_grid_locations,old_location_x,old_location_y)
+                map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
+        elif k == ord('s'): # s= backwards
+            #image = image[::-1]
+            old_location_x=new_location_x
+            old_location_y=new_location_y
+            new_location_x -=direction_vector[0]
+            new_location_y -=direction_vector[1]
+            resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
+            if image_found==0:
+                print "No image"
+                new_location_x +=direction_vector[0]
+                new_location_y +=direction_vector[1]
+            else:
+                display_image(resized_img, image_title, available_directions_index, new_heading_ind)
+                map_template=plot_old_position_on_map(map_template,useable_grid_locations,old_location_x,old_location_y)
+                map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
+        elif k == ord('a'): # ,<= left
+            #image = image[::-1]
+            #new_location_x -=1
+            new_heading_ind -=1
+            resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
+            if image_found==0:
+                print "No image"
+                #new_location_x +=1
+            else:
+                display_image(resized_img, image_title, available_directions_index, new_heading_ind)
+                #map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
+        elif k == ord('d'): # .>= right
+            #image = image[::-1]
+            #new_location_x -=1
+            new_heading_ind +=1
+            resized_img, image_found,new_heading_ind,direction_vector,image_title,available_directions_index=find_next_set_images(new_location_x,new_location_y,new_heading_ind,file_database_sorted,piclist)
+            if image_found==0:
+                print "No image"
+                #new_location_x +=1
+            else:
+                display_image(resized_img, image_title, available_directions_index, new_heading_ind)
+                #map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,new_location_x,new_location_y)
+except KeyboardInterrupt:
+    pass
             
