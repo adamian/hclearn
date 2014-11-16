@@ -96,7 +96,8 @@ WO_ideal = np.load('WO.npy')
 WS_ideal = np.load('WS.npy')
 WB_ideal = np.load('WB.npy')
 
-# This is not random, it's something like the mean?
+# This is not really random, but it's equivalent. Indeed, the results with the next chunk (true random) are equivalent
+# possibly because random weights result in mean predictions (same as zero weights)
 WR_rand0 = 0+ 0*np.random.random(WR_ideal.shape)
 WB_rand0 = 0+ 0*np.random.random(WB_ideal.shape)
 WO_rand0 = 0+ 0*np.random.random(WO_ideal.shape)
@@ -197,6 +198,10 @@ if b_inference:
 
     random.seed(SEED) ;  np.random.seed(SEED)
     hist3 = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_ideal, WR_ideal, WS_ideal, WO_ideal, dghelper, b_obsOnly=b_obsOnly,  b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids, b_useSub=b_useSub, str_title="Handset", b_learn=b_learn)
+
+    random.seed(SEED) ;  np.random.seed(SEED)
+    hist4  = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_rand0,  WR_rand0,  WS_rand0, WO_rand0, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Random0", b_learn=b_learn)
+
 print "DONE"
 
 if b_plot:
@@ -204,5 +209,7 @@ if b_plot:
     (lost1,xys1) = plotResults(testPath, hist1, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost2,xys2) = plotResults(testPath, hist2, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost3,xys3) = plotResults(testPath, hist3, dictGrids, b_useNewDG, learningRate, note=anote)
-    plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
+    (lost4,xys4) = plotResults(testPath, hist4, dictGrids, b_useNewDG, learningRate, note=anote)
+    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote)
+    #plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
     show()
