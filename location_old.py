@@ -1,6 +1,3 @@
-# This is the same as location.py, but has Nmax to be given, so it can create arbitrarily large mazes.
-# Has to be changed more (e.g. see which functions use Nmax). For the moment, DictGrids is working with larger mazes and all functions 
-# are using customizable Nmax. But have to change the grid creation to actually take into account this Nmax
 
 #place cell code:          th headings:
 #                           
@@ -16,44 +13,28 @@
 
 import numpy as np
 
-# If the maze is has x in [0, ..., xMax] and y in [0, ..., yMax], then xyMax = max(xMax, yMax)
-# Then, we find the nearest to xyMax (rounding upwards) number K, so that 2^Nmax = K.
-default_Nmax=3
 
-# Returns mod 2^{n+1} < 2^n
-# (see Fox paper before eq. 19)
 def gComponent(x, i):
     return (  np.mod(x,2**(i+1)) < 2**i )
 
 
 
 class DictGrids:
-    def __init__(self, Nmax=default_Nmax):
-        self.Nmax=Nmax
-        #self.basis = np.array([[1,2,4],[8,16,32]])
-        # We want to put a unique int id per cell. E.g. 
-        # (0,0) -> 0
-        # (0,1) -> 8 etc. 
-        # It doesn't matter if cell (x,y) is a valid maze location, we need to do this assignment for all x times y cells,
-        # x in [0, ...., xMax] and y in [0, .. yMax]
-        # The following function is taking two inputs and returns a unique reversible id.
-        self.basis = np.vstack((2**np.arange(self.Nmax),2**(np.arange(self.Nmax)+self.Nmax)))
+    def __init__(self):
+        self.basis = np.array([[1,2,4],[8,16,32]])
         self.d=dict()
-        for x in range(0,2*self.Nmax):
-            for y in range(0,2*self.Nmax):
-                grids=getGrids(x,y,self.Nmax)
+        for x in range(0,8):
+            for y in range(0,8):
+                grids=getGrids(x,y)
                 id = sum(sum(grids*self.basis))
-                print id
                 self.d[id]=(x,y)
     def lookup(self, grids):
         id = sum(sum(grids*self.basis))
         return self.d[id]
 
 
-def getGrids(x,y, Nmax=default_Nmax):
-    assert(x <= (Nmax*2)+1)
-    assert(y <= (Nmax*2)+1)
-    #Nmax = 3
+def getGrids(x,y):
+    Nmax = 3
     grids = np.zeros((2,Nmax))
     for i in range(0,Nmax):   #TODO should test this more, maybe a source of bugs?
 
@@ -67,20 +48,16 @@ def getGrids(x,y, Nmax=default_Nmax):
     return grids
 
 
-# Continue edits from here and below...
 
 class Location:
-    def __init__(self, Nmax=default_Nmax):
+    def __init__(self):
         foo=0
-        self.Nmax=Nmax
 
-    # TODO for resizable
     def setPlaceId(self, placeId):
         self.placeId = placeId
         if placeId<0 or placeId>12:
             print "ERROR, tried to set placeId outside maze!"
-    
-    # TODO for resizable
+
     def setXY(self, x, y):
         if x==3 and y==3:
             self.placeId=0
@@ -103,7 +80,6 @@ class Location:
         (x,y)=self.getXY()
         return getGrids(x,y)
 
-    # TODO for resizable
     def getXY(self):
         if self.placeId > 9:
             d = (self.placeId-9)* np.array([0, -1])
@@ -118,10 +94,9 @@ class Location:
         center = np.array([3,3])
         return center+d
 
-    # TODO for resizable
     def getGrids(self):
 
-        Nmax = self.Nmax
+        Nmax = 3
         grids = np.zeros((2,Nmax))
 
         (x,y) = self.getXY()

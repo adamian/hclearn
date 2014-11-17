@@ -54,7 +54,7 @@ tr_epochs=10
 # If true then it'll attempt to load the maze (corresponding to the same set of configurations) 
 # from a file. If the file doesn't exist, the algorithm will save the maze for future use.
 # Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
-pickle_maze = True # True
+pickle_maze = False # True
 imFolder = "DivisionCarver" #"divistion_street_1" #"DivisionCarver" #DCSCourtyard"
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
