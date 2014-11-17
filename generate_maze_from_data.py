@@ -78,18 +78,15 @@ class maze_from_data:
             print "Not enough images at this y location!!" 
             return (0,0,heading,direction_vector,0,0)
             
-        images_2_display=matched_image_index['file_id'][heading_array]
+        images_to_combine=matched_image_index['file_id'][heading_array]
         
 #        print('Images to display:/n')
-#        print images_2_display
+#        print images_to_combine
 #        print matched_image_index
-        
-        combined_img = np.concatenate(self.img_file[images_2_display] , axis=1) #file_database_north_sortx[0,:]
-        resized_img = cv2.resize(combined_img, (self.image_display_width, self.image_display_height)) 
         image_found=1
         
               
-        picture_name=self.file_database_sorted['img_fname'][np.where(self.file_database_sorted['file_id']==images_2_display[1])][0]  #self.file_database_sorted['img_fname'][np.where(self.file_database_sorted['file_id']==images_2_display[1])]##picture_name_list[images_2_display[1]]
+        picture_name=self.file_database_sorted['img_fname'][np.where(self.file_database_sorted['file_id']==images_to_combine[1])][0]  #self.file_database_sorted['img_fname'][np.where(self.file_database_sorted['file_id']==images_to_combine[1])]##picture_name_list[images_to_combine[1]]
         
         ######## Check for alternative image options -> Can we go forwards / backwards / left / right
         available_direction_vector=np.zeros([4],dtype='i1')+1
@@ -112,7 +109,12 @@ class maze_from_data:
         if matched_image_index_test==-1 or matched_image_index_test==-2:
             available_direction_vector[3]=0         
             
-        return (resized_img,image_found,heading,direction_vector,picture_name,available_direction_vector)
+        return (images_to_combine,image_found,heading,direction_vector,picture_name,available_direction_vector)
+        
+    def concatenate_resize_images(self,images_to_combine):
+        combined_img = np.concatenate(self.img_file[images_to_combine] , axis=1) #file_database_north_sortx[0,:]
+        resized_img = cv2.resize(combined_img, (self.image_display_width, self.image_display_height))
+        return (resized_img)        
     
     def find_quad_image_block(self,location_x,location_y):
         # find x values
@@ -270,7 +272,7 @@ class maze_from_data:
     # Make database of image files
     #####################################
     
-    def index_image_files(self):
+    def index_image_files(self, fixed_extract=False):
         # File list
         #piclist = []
         #### Load all files from given folder and sort by x then y then direction....
@@ -285,26 +287,62 @@ class maze_from_data:
         file_database['orig_file_id'][:]=range(0,no_files)
         
         image_count=0
-
-        for infile in glob.glob(os.path.join(self.folder, '*.jpg')):
-            # ADD filename to list    
-            #piclist.append(infile)
-            # Extract relevant file information.....
-            # find start of filename section
-            file_info=infile[infile.rfind("\\")+1:infile.rfind("\\")+14]
-            # img count , x, y, heading, img_num
-            file_database['img_fname'][image_count]=infile
-            # x grid
-            file_database['x_loc'][image_count]=int(file_info[0:3])
-            # y grid    
-            file_database['y_loc'][image_count]=int(file_info[4:7])
-            # Convert letter heading to index 1= N, 2=E, 3=S, 4=W
-            file_database['heading'][image_count]=self.heading_index.find(file_info[8:9])
-            # File identifier (optional extra e.g. two files at same location x,y and direction)
-            file_database['img_id'][image_count]=int(file_info[10:13])
-            # Massive data image block!!!
-            image_count += 1
-            
+        
+        if fixed_extract: # Lukes original mode of cutting by fixed locations in string.....
+            for infile in glob.glob(os.path.join(self.folder, '*.jpg')):
+                # ADD filename to list    
+                #piclist.append(infile)
+                # Extract relevant file information.....
+                # find start of filename section
+                file_info=infile[infile.rfind("\\")+1:infile.rfind("\\")+14]
+                # img count , x, y, heading, img_num
+                file_database['img_fname'][image_count]=infile
+                # x grid
+                file_database['x_loc'][image_count]=int(file_info[0:3])
+                # y grid    
+                file_database['y_loc'][image_count]=int(file_info[4:7])
+                # Convert letter heading to index 1= N, 2=E, 3=S, 4=W
+                file_database['heading'][image_count]=self.heading_index.find(file_info[8:9])
+                # File identifier (optional extra e.g. two files at same location x,y and direction)
+                file_database['img_id'][image_count]=int(file_info[10:13])
+                # Massive data image block!!!
+                
+        else: # Use original mode from HCLEARN - Charles FOX
+            import re
+            if os.path.exists(self.folder):
+                for file in os.listdir(self.folder):
+                    parts = re.split("[-,\.]", file)
+                    #Test that it is (NUM-NUM-DIRECTION-whatever)
+                    if len(parts)>=2 and parts[0].isdigit() and parts[1].isdigit() and (parts[2][0].isalpha and len(parts[2]) == 1):
+                        if parts[2][0] in self.heading_index:
+#                            key = ((int(parts[0]), int(parts[1])),parts[2])
+                            #If it doesnt already exist, make this key
+#                            if key not in self.files.keys():
+#                                self.files[key] = []
+                            #fullFilePath = os.path.join(self.folder,file)
+                            #Add the new file onto the end of the keys list (since there can be multiple images for one direction)
+                            file_database['img_fname'][image_count]=file
+                            # x grid
+                            file_database['x_loc'][image_count]=int(parts[0])
+                            # y grid    
+                            file_database['y_loc'][image_count]=int(parts[1])
+                            # Convert letter heading to index 1= N, 2=E, 3=S, 4=W
+                            file_database['heading'][image_count]=self.heading_index.find(parts[2])
+                            # File identifier (optional extra e.g. two files at same location x,y and direction)
+                            if parts[3].isdigit():
+                                file_database['img_id'][image_count]=int(parts[3])
+                            else:
+                                file_database['img_id'][image_count]=1     
+                            image_count += 1
+                            #self.files[key].append(fullFilePath)
+                        else:
+                            raise NameError("Heading is: %s\nit should be N E S or W" % parts[2])
+                    else:
+                        print self.folder
+                        print file
+                        #raise NameError("File: %s\ndoes not fit naming convention INT-INT-HEADING" % file)
+            else:
+                raise NameError("Folder does not exists")    
         #==============================================================================
         # ### Mini task... get all northern images, in order of x location
         # # Northern data,
@@ -347,23 +385,25 @@ class maze_from_data:
         
     def display_maps_images(self):    
         
+        ## Load image data from folder
         self.load_image_files()
-        ## Set up image arrays for maps.....
+        ## Set up image arrays for map plots.....
         self.map_template=np.zeros((self.pixel_width,self.pixel_width,3),dtype='u1') # default black
         #map_image_display=np.zeros((self.pixel_width,self.pixel_width,3),dtype='u1') # default black
-        # Choose start location (division street)
+        # Choose start location (take first place cell id)
         self.location_x=self.place_cell_id[1,0]
         self.location_y=self.place_cell_id[2,0]
         
-                # Windows screen size
+        # Windows screen size
         self.screen_width = GetSystemMetrics (0)
         self.screen_height = GetSystemMetrics (1)
         
+        # fit 3x images in window
         self.image_display_width=self.screen_width
         self.image_display_height=int(round(self.screen_width/3,0))
         
         ############################
-        ######### Make arrow points
+        ######### Make arrow points (to show where to go....)
         x_arrow_base_location=int(self.image_display_width/2)
         y_arrow_base_location=int(self.image_display_height*0.90)
         # shorter size
@@ -416,12 +456,13 @@ class maze_from_data:
         #new_location_y=self.location_y
         
         ### Initialise interative environment
-        resized_img,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(self.location_x,self.location_y,heading_ind)
+        images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(self.location_x,self.location_y,heading_ind)
         if image_found==0:
             print "No base location image... exiting"
             sys.exit()
         
         ## ALTERNATIVE:: get NESW for location
+        resized_img=self.concatenate_resize_images(self,images_to_combine)
         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
         
         # plot Place cells on the map
@@ -433,7 +474,7 @@ class maze_from_data:
         
     def maze_interactive(self):
         
-                
+        # get base x, y locations
         new_location_x=self.location_x
         new_location_y=self.location_y
         
@@ -454,12 +495,13 @@ class maze_from_data:
                     old_location_y=new_location_y
                     new_location_x +=self.direction_vector[0]
                     new_location_y +=self.direction_vector[1]
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         new_location_x -=self.direction_vector[0]
                         new_location_y -=self.direction_vector[1]
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
                         self.plot_current_position_on_map(new_location_x,new_location_y)
@@ -469,12 +511,13 @@ class maze_from_data:
                     old_location_y=new_location_y
                     new_location_x -=self.direction_vector[0]
                     new_location_y -=self.direction_vector[1]
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         new_location_x +=self.direction_vector[0]
                         new_location_y +=self.direction_vector[1]
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
                         self.plot_current_position_on_map(new_location_x,new_location_y)
@@ -482,22 +525,24 @@ class maze_from_data:
                     #image = image[::-1]
                     #new_location_x -=1
                     self.new_heading_ind -=1
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         #new_location_x +=1
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
                 elif k == ord('d'): # .>= right
                     #image = image[::-1]
                     #new_location_x -=1
                     self.new_heading_ind +=1
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         #new_location_x +=1
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
         except KeyboardInterrupt:
@@ -514,7 +559,9 @@ class maze_from_data:
             ### Wait for key to update
             while True:
 #                   k = cv2.waitKey(0) & 0xFF
+            # Delay here for each cycle through the maze.....
                 cv2.waitKey(250) & 0xFF
+                # Generate random direction NESW
                 k=np.random.choice(np.array([0,1,2,3]))
                 if k == 27: # ESC
                     cv2.destroyAllWindows()
@@ -529,12 +576,13 @@ class maze_from_data:
                     old_location_y=new_location_y
                     new_location_x +=self.direction_vector[0]
                     new_location_y +=self.direction_vector[1]
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         new_location_x -=self.direction_vector[0]
                         new_location_y -=self.direction_vector[1]
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
                         self.plot_current_position_on_map(new_location_x,new_location_y)
@@ -544,12 +592,13 @@ class maze_from_data:
                     old_location_y=new_location_y
                     new_location_x -=self.direction_vector[0]
                     new_location_y -=self.direction_vector[1]
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         new_location_x +=self.direction_vector[0]
                         new_location_y +=self.direction_vector[1]
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
                         self.plot_current_position_on_map(new_location_x,new_location_y)
@@ -557,22 +606,24 @@ class maze_from_data:
                     #image = image[::-1]
                     #new_location_x -=1
                     self.new_heading_ind -=1
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         #new_location_x +=1
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
                 elif k == 3: # .>= right
                     #image = image[::-1]
                     #new_location_x -=1
                     self.new_heading_ind +=1
-                    resized_img, image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
                         print "No image"
                         #new_location_x +=1
                     else:
+                        resized_img=self.concatenate_resize_images(self,images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
         except KeyboardInterrupt:
@@ -581,19 +632,16 @@ class maze_from_data:
         
         
         
-        
-        
-        
-        
-        
 if __name__ == '__main__':
     print('FRED')
-    # Load data     
+    # Configure class   
     ttt=maze_from_data()
+    # Read available files
     ttt.index_image_files()
     # Display interactively
     ttt.display_maps_images()
-    
+    # Run interactive mode....
     ttt.maze_interactive()
+    
     
 
