@@ -1,5 +1,6 @@
 from cffun import *
-from makeMaze import Senses
+#from makeMaze import Senses
+from makeMazeResizeable import Senses
 from location import Location
 from DGStateAlan import DGState, smartCollapse
 #Senses, makeMaze
@@ -377,7 +378,7 @@ def CA3StateFromInputs(ec, dg, lightState):
     light = np.zeros(4)  #CA3 light cells. (ie tracking the hidden state of the world)
     light[lightState]=1
     
-    N_place = place.shape[0] 
+    #N_place = place.shape[0] 
     N_light = 4       
     N_hd=4
 

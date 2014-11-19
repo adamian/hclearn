@@ -7,40 +7,46 @@ printMessages = True
 
 # Luke Boorman November 2014 -> ADAPTED TO MOVE AWAY FROM FIXED OUTPUT PLUS MAZE!!!!!!
 
-
+directionDict = {0: 'N', 1: 'E', 2: 'S', 3: 'W'} 
 #an ideal set of EC responses, to a particular agent state (excluding lightAhead)
 #TODO: maybe classes should rep states in simplest possible way, and only convert to cells when requested??
 class Senses:
-    def __init__(self,x,y, direction, SURFdict):
+    def __init__(self):#,x,y, direction, SURFdict):
         
-        #self.placeCells = np.zeros((1+4*N_mazeSize))
-        loc=Location()
-        loc.setXY(x,y)
-        #placeId = loc.placeId
-        #self.placeCells[placeId] = 1   
-
-        self.grids = loc.getGrids().copy()
+        self.hd=np.zeros(4)
+        self.rgb=np.zeros(3)
+        self.surfs=[]
+        self.whiskers=np.zeros(3)
+        self.grids=[]
+#        #self.placeCells = np.zeros((1+4*N_mazeSize))
+#        loc=Location()
+#        loc.setXY(x,y)
+#        #placeId = loc.placeId
+#        #self.placeCells[placeId] = 1   
+#
+#        self.grids = loc.getGrids().copy()
+#        
+#        # Add attribute head direction - NSEW
+#        self.headdirection = np.array([0,0,0,0])
+#        self.headdirection[direction]=1
+#
+#        self.rgb=np.array([0,0,0])  #assume a red poster in the east and a green poster in the north
+#        if direction==0:          #NB these differ from head direction cells, as headdirection odometry can go wrong!
+#            self.rgb[0]=1
+#        if direction==1:
+#            self.rgb[1]=1
+#        
+#        if SURFdict is not None:
+#            #HOOK ALAN - include SURF features in the senses of the dictionary
+#            #Problem wdirection merging here is you can only have one image per direction?
+#            self.surfs=findSurfs(x,y,direction,SURFdict)
+#        else:
+#            self.surfs=np.array([])
+#            
+#        #print("Surf feature for %d,%d,%d:\n%s" % (x,y,direction,self.surfs))
+#        #x,y relate to surf features in SURFdict
+#        self.whiskers=np.array([0,0,0]) #to be filled in outside
         
-        # Add attribute head direction - NESW
-        self.headdirection = np.array([0,0,0,0])
-        self.headdirection[direction]=1
-
-        self.rgb=np.array([0,0,0])  #assume a red poster in the east and a green poster in the north
-        if direction==0:          #NB these differ from head direction cells, as headdirection odometry can go wrong!
-            self.rgb[0]=1
-        if direction==1:
-            self.rgb[1]=1
-        
-        if SURFdict is not None:
-            #HOOK ALAN - include SURF features in the senses of the dictionary
-            #Problem wdirection merging here is you can only have one image per direction?
-            self.surfs=findSurfs(x,y,direction,SURFdict)
-        else:
-            self.surfs=np.array([])
-            
-        #print("Surf feature for %d,%d,%d:\n%s" % (x,y,direction,self.surfs))
-        #x,y relate to surf features in SURFdict
-        self.whiskers=np.array([0,0,0]) #to be filled in outside
 
 STAY=0   #enum actions
 FWD=1
@@ -54,7 +60,7 @@ def findSurfs(x,y,direction,SURFdict):
     # OLD directionDict = {0: 'E', 1: 'N', 2: 'W', 3: 'S'}
     #  Changed
     # Dictionary to convert directions wdirection NESW and Senses uses a direction 0 1 2 or 3
-    directionDict = {0: 'N', 1: 'E', 2: 'S', 3: 'W'}    
+    #directionDict = {0: 'N', 1: 'E', 2: 'S', 3: 'W'}    
     #Convert direction
     direction = directionDict[direction]
     
@@ -97,11 +103,36 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
     
     # Run SURF features....
     surfDict=None
-    surfDict = makeSURFRepresentation(prefixFolder,False)     
     
+    surfDict = makeSURFRepresentation(prefixFolder,False)     
+    print('SURF Completed')
+    
+    ## Store all sensory inputs in here, head direction, image surfs, whiskers
     dictSenses=dict()
     dictAvailableActions=dict()
     dictNext=dict()
+    
+    # Calculate NMax as grid cell encoding...
+    # Setup as a 2xn grid, therfore need to encode for complete grid sapce, ie if x=4,y=5 grid x*y=20
+    # Max size of peak2peak of x and y, log2 and maximum size.....     
+    Nmax=int(np.ceil(np.log2(np.amax([maze_data.place_cell_id[1].ptp(),maze_data.place_cell_id[2].ptp()]))))   
+    # Setup location class with nMax    
+    loc=Location(Nmax)
+    
+    # Step for each move around Maze
+    maze_step_size=1    
+    
+    # Calc step depending on direction...... PROBELMS HERE WITH LUKE AND CF MAZES!!!!               
+    # Luke x = East is Positive, y = North = positive
+    # 'N' x=0, y=+ /'E' x=+, y=0 / 'S' x=0, y=- / 'W' x=-, y=0
+    # step_index=np.array([[0,maze_step_size],[maze_step_size,0],[0,-maze_step_size],[-maze_step_size,0]])
+#    print 'WARNING RUNNING IN Luke MODE..... North positive!'  
+    # CF x = West is Positive y = South = Positive          
+    # 'N' x=0, y=- / 'E' x=-, y=0 / 'S' x=0, y=+ / 'W' x=+, y=0
+    print 'WARNING RUNNING IN CHARLES FOX MODE..... North negative!'    
+    step_index=np.array([[0,-maze_step_size],[-maze_step_size,0],[0,maze_step_size],[maze_step_size,0]])
+    
+    
     # Loop through all locations.... N,E,S,W    
     for current_id in range(0,maze_data.place_cell_id[0,:].size):
        # maze_data.find_next_set_images(0,26,1)
@@ -112,25 +143,73 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
         ## Fn find_next_set_images
         ## returns: (images_to_combine,image_found,heading,direction_vector,picture_name,available_direction_vector)
         ## available_direction_vector = [forwards, backwards, left, right]
-        for current_direction in range(0,4): # N=0,E=1,S=2,W=3
-            current_location=(current_x,current_y,current_direction)            
-            _,image_found,_,_,_,available_direction_vector=maze_data.find_next_set_images(*current_location)#(current_x,current_y,current_direction)
+        
+        # Get only those headings available....
+        included_headings=np.where(maze_data.locations_unique[(current_x,current_y)]['Image_count']>0)
+        
+        for current_direction in included_headings[0]: # N=0,E=1,S=2,W=3
+            direction = directionDict[current_direction]
+            # SURF HAS A DIFFERENT BLOODY DICTIONARY Key!!!!
+            #current_surf_location=((current_x,current_y),direction)            
+            current_location=(current_x,current_y,current_direction)             
+            _,image_found,_,_,_,available_direction_vector=maze_data.find_next_set_images(current_x,current_y,current_direction)
             if image_found:
                 # Sense dictionary
-                dictSenses[current_location].whiskers=np.square(available_direction_vector[[0,2,3]]-1) # REVERSE and REMOVE BACKWARDS
+                dictSenses[current_location]=Senses()
+                dictSenses[current_location].hd[current_direction]=1 # REVERSE and REMOVE BACKWARDS            
+                dictSenses[current_location].whiskers=np.square(available_direction_vector[[2,0,3]]-1) # LEFT / FORWARDS / RIGHT
                 dictSenses[current_location].rgb=np.array([0,0,0]) # Not set at the moment
-                dictSenses[current_location].senses=surfDict[current_location]
-                
-                dictSenses[current_location].grids=1#SORT GRIDS
-                
+                try:
+                    dictSenses[current_location].surfs=findSurfs(current_x,current_y,current_direction,surfDict)
+                except:
+                    pass
+                ##dictSenses[current_location].grids=1#SORT GRIDS   
+                loc.setXY(current_x,current_y)
+                dictSenses[current_location].grids = loc.getGrids().copy()
+                        
                 # Which ways can you go....
-                #dictAvailableActions[current_location] = [STAY,FWD,LEFT,RIGHT]
-                # What is available next                
-                #dictNext[current_location] = [(x,y,direction), (x+step_xs[direction],y+step_ys[direction],direction), (x,y,direction_l), (x,y,direction_r)] 
+                # Take from available action vector [FWD=1, REVERSE(UTURN)=4, LEFT=2, RIGHT=3]
+                        
+                        
+                #TODO: MAY need to spin this round - Charles fox different systems        
+                dictAvailableActions[current_location] = np.concatenate(([0],np.array([1,4,2,3])[np.where(available_direction_vector>0)]))#[STAY,FWD,LEFT,RIGHT]
 
-    
+                # What is available next                
+                #WTF!!!! dictNext[current_location] = [(x,y,direction), (x+step_xs[direction],y+step_ys[direction],direction), (x,y,direction_l), (x,y,direction_r)] 
+                # Stay in the same place!!!!                
+                # = 0                
+                #dictNext[current_location] = [current_location]
+                next_locations=(current_x,current_y,current_direction)
+                # Calc step depending on direction...... x, y             
+                current_stepping=step_index[current_direction]            
+                # Forward                
+                if 1 in dictAvailableActions[current_location]:
+                    #dictNext[current_location].append([(current_x+current_stepping[0],current_y+current_stepping[1]),current_direction])    
+                    next_locations=next_locations+(current_x+current_stepping[0],current_y+current_stepping[1],current_direction)
+                # Left               
+                if 2 in dictAvailableActions[current_location]:
+                    new_heading,_=maze_data.phase_wrap_heading(current_direction-1)
+                    #dictNext[current_location].append([(current_x,current_y),directionDict[new_heading]])
+                    next_locations=next_locations+(current_x,current_y,new_heading)
+                # Right              
+                if 3 in dictAvailableActions[current_location]:
+                    new_heading,_=maze_data.phase_wrap_heading(current_direction+1)
+                    #dictNext[current_location].append([(current_x,current_y),directionDict[new_heading]])
+                    next_locations=next_locations+(current_x,current_y,new_heading)
+                # U-TURN, reverse             
+                if 4 in dictAvailableActions[current_location]:
+                    new_heading,_=maze_data.phase_wrap_heading(current_direction+2)
+                    #dictNext[current_location].append([(current_x,current_y),directionDict[new_heading]])
+                    next_locations=next_locations+(current_x,current_y,new_heading)
+                dictNext[current_location] = zip(next_locations[::3],next_locations[1::3],next_locations[2::3])
+                
+                
+                #, (x+step_xs[direction],y+step_ys[direction],direction), (x,y,direction_l), (x,y,direction_r)] 
+                
+                
+    print ('Completed Dict for current data...')    
     # Walk around maze.... just use place cells    
-    print('SURF Completed')
+    
     
 #==============================================================================
 #     
@@ -208,7 +287,7 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
 
     #print("dictSenses\n%s\ndictAvailableActions\n%s\ndictNext\n%s\nThere are %d images\n" % (dictSenses.keys(), dictAvailableActions,dictNext, len(dictSenses.keys())))
     #print("\n\ndictSenses:\n%s" % dictSenses)
-    return [dictSenses, dictAvailableActions, dictNext]
+    return [dictSenses, dictAvailableActions, dictNext, Nmax]
 
 #No longer needed, sorted it out by passing it from go to hcq..
 #[dictSenses, dictAvailableActions, dictNext] = makeMaze(3)

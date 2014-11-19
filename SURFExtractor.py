@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-import cv
+import cv2.cv as cv
 import numpy as np
 import pyflann as flann
 import unittest

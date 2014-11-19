@@ -29,7 +29,7 @@ def gComponent(x, i):
 
 class DictGrids:
     def __init__(self, Nmax=default_Nmax):
-        self.Nmax=Nmax
+        self.Nmax=int(Nmax)
         #self.basis = np.array([[1,2,4],[8,16,32]])
         # We want to put a unique int id per cell. E.g. 
         # (0,0) -> 0
@@ -37,16 +37,17 @@ class DictGrids:
         # It doesn't matter if cell (x,y) is a valid maze location, we need to do this assignment for all x times y cells,
         # x in [0, ...., xMax] and y in [0, .. yMax]
         # The following function is taking two inputs and returns a unique reversible id.
-        self.basis = np.vstack((2**np.arange(self.Nmax),2**(np.arange(self.Nmax)+self.Nmax)))
+        self.basis = np.vstack((2**np.arange(self.Nmax,dtype='i2'),2**(np.arange(self.Nmax,dtype='i2')+self.Nmax)))
         self.d=dict()
-        for x in range(0,2*self.Nmax):
-            for y in range(0,2*self.Nmax):
+        for x in range(int(np.sqrt(np.amax(self.basis)*2))):#(0,2*self.Nmax): # LB modified as not using full range!
+            for y in range(int(np.sqrt(np.amax(self.basis)*2))):#0,2*self.Nmax):
                 grids=getGrids(x,y,self.Nmax)
                 id = sum(sum(grids*self.basis))
-                print id
+                #print id
                 self.d[id]=(x,y)
     def lookup(self, grids):
         id = sum(sum(grids*self.basis))
+        #print(str(id))
         return self.d[id]
 
 
@@ -98,10 +99,10 @@ class Location:
     def setGrids(self, grids, dictGrids):
         (x,y) = dictGrids.lookup(grids)
         self.setXY(x,y)
-
-    def getGrids(self):
-        (x,y)=self.getXY()
-        return getGrids(x,y)
+# LUKE COMMENTED OUT HERE AS REPEATED
+#    def getGrids(self):
+#        (x,y)=self.getXY()
+#        return getGrids(x,y)
 
     # TODO for resizable
     def getXY(self):
