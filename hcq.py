@@ -193,7 +193,7 @@ def makeMAPPredictionsStep(dictGrids, ec, ca3, ca3_PREV_gnd, sub_int, WB, WR, WS
     else:
         v_ca3    = np.hstack((ca3.toVector(), 1))                   
 
-    N_places = dg.place.shape[0]
+    N_places = dg.place.shape[0] # Does this work to get correct no places!!!!!!
     N_grids = ec.grids.shape[1]*2
     N_ec = ec.toVector().shape[0]
     N_ca3 = len(v_ca3)
@@ -236,7 +236,7 @@ def makeMAPPredictionsStep(dictGrids, ec, ca3, ca3_PREV_gnd, sub_int, WB, WR, WS
     #print("p_senses: %s" % p_senses)
     #ALAN - The last sense is "whiskers left and right on" this is almost always on, thus in the CA1State can be decoded to mean "whiskers left and right on"
 
-    ca1 = CA1State(p_odom, p_senses, dghelper)                   #lots of smart decoding done in here
+    ca1 = CA1State(p_odom, p_senses, dghelper, N_places)   #N_places added by luke           #lots of smart decoding done in here
     
     #HOOK-ALAN set weights for each error in the subiculum so they add up to one (so surfs don't count much more towards the final error than the others)
     whiskersWeighted = np.sum(ca1.whiskers!=ec.whiskers)/float(len(ca1.whiskers))

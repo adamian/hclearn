@@ -16,7 +16,7 @@ import cv2
 import os
 import glob
 from win32api import GetSystemMetrics
-
+from collections import Counter
 
 class maze_from_data:
     #Requires the folder name
@@ -37,6 +37,7 @@ class maze_from_data:
         ## Making a Map build grip index 
         self.pixel_width=600#200
         self.locations_unique=dict()
+        self.step_time_delay=100
         
         ### Check heading is range.....
     def phase_wrap_heading(self,heading):
@@ -48,6 +49,7 @@ class maze_from_data:
             if heading<=3 and heading>=0:
                 break
 #        # Work out direction vectors....
+         # Luke Original vectors       
 #        if heading==0: # North = x=0, y=1
 #            direction_vector=[0,1]
 #        elif heading==1: # East = x=1, y=0
@@ -58,15 +60,15 @@ class maze_from_data:
 #            direction_vector=[-1,0]
             
         # Work out direction vectors....
-        print 'USING CHARLES FOX DIRECTION VECTORS!'
+        #print 'USING CHARLES FOX DIRECTION VECTORS!'
         if heading==0: # North = x=0, y=1
             direction_vector=[0,-1]
         elif heading==1: # East = x=1, y=0
-            direction_vector=[-1,0]
+            direction_vector=[1,0]
         elif heading==2: # south = x=0, y=-1
             direction_vector=[0,1]
         else: # west = x=-1, y=0
-            direction_vector=[1,0]                
+            direction_vector=[-1,0]                
         return (heading, direction_vector)
         
     ##### Find matching 3 files to display
@@ -240,7 +242,7 @@ class maze_from_data:
         cv2.rectangle(map_image_display,tuple(sq[0:2]),tuple(sq[2:4]),(0,0,255),-1)
         
         
-        map_image_display=self.flip_rotate_color_image(map_image_display,self.heading_index.find(self.direction))
+        map_image_display=self.flip_rotate_color_image(map_image_display,self.heading_index.find(self.direction),False)
         
         #map_image_display=np.copy(np.rot90(np.flipud(map_image_display),self.heading_index.find(self.direction)))
         # Show direction
@@ -264,11 +266,15 @@ class maze_from_data:
         # Plot red box where vehicle is....    
         min_x=place_cell_id[1].min()
         min_y=place_cell_id[2].min()
+        ptp_y=place_cell_id[2].ptp()
+        
         map_out=np.copy(map_data); # FORCE COPY SO IT DOESNT KEEP OLD MOVES!!!!!
-        map_out=self.flip_rotate_color_image(map_out,0)
+        map_out=self.flip_rotate_color_image(map_out,0,False)
         # Loop through each place id
         for  current_place in range(0,place_cell_id[0].size): 
-            sq=self.squares_grid[place_cell_id[1][current_place]-min_x,place_cell_id[2][current_place]-min_y,:]        
+#            sq=self.squares_grid[place_cell_id[1][current_place]-min_x,place_cell_id[2][current_place]-min_y,:]        
+            # Flipping this in y-plane            
+            sq=self.squares_grid[place_cell_id[1][current_place]-min_x,np.absolute(place_cell_id[2][current_place]-min_y-ptp_y),:]        
             # Place number at bottom of square in middle.... 
             x_pos=sq[0]#+np.round(np.diff([sq[2],sq[0]])/2)
             y_pos=self.pixel_width-sq[1]+np.round(np.diff([sq[3],sq[1]])/2)
@@ -284,9 +290,12 @@ class maze_from_data:
         return map_out
       
       # Flip image (mirror) then rotate anti clockwise by @ 90 degrees
-    def flip_rotate_color_image(self,image,angles_90):
+    def flip_rotate_color_image(self,image,angles_90, flip_on):
         for current_color in range(0,image[0,0,:].size):
-            image[:,:,current_color]=np.rot90(np.flipud(image[:,:,current_color]),angles_90)
+            if flip_on:
+                image[:,:,current_color]=np.rot90(np.flipud(image[:,:,current_color]),angles_90)            
+            else:
+                image[:,:,current_color]=np.rot90(image[:,:,current_color],angles_90)
         return image
     
     
@@ -433,10 +442,35 @@ class maze_from_data:
         self.file_database_sorted=np.sort(file_database_primary,order=['x_loc','y_loc','heading'])
         self.file_database_sorted['file_id']=range(0,len(self.file_database_sorted))
         # Not all directions included..... therefore cannot use NORTH only!!!!!!
-        #np.array(list(set(tuple(p) for p in points)))        
-        useable_grid_locations=np.transpose(np.asarray(self.locations_unique.keys(),dtype='i3'))
-        # First Image
-        self.place_cell_id=np.array([range(0,useable_grid_locations[0].size),useable_grid_locations[0],useable_grid_locations[1]])        
+        #np.array(list(set(tuple(p) for p in points)))
+        
+        useable_grid_locations=np.empty(len(self.locations_unique.keys()),dtype=[('x_loc','i2'),('y_loc','i2')])
+        useable_grid_locations['x_loc']=np.transpose(np.asarray(self.locations_unique.keys(),dtype='i3'))[0]
+        useable_grid_locations['y_loc']=np.transpose(np.asarray(self.locations_unique.keys(),dtype='i3'))[1]
+
+        
+        useable_grid_locations=np.sort(useable_grid_locations,order=['x_loc','y_loc'])
+        
+        ## Add in place locations.
+        ## Build empty array with x and y values...
+        self.place_cell_id=np.array([np.zeros(useable_grid_locations['x_loc'].size,dtype='i2'),useable_grid_locations['x_loc'],useable_grid_locations['y_loc']])
+        # 1. Order using longest x road (e.g. division street) => has most identical y values
+        most_y=Counter(self.place_cell_id[2]).most_common()
+        place_cell_id_x=np.zeros(useable_grid_locations['x_loc'].size,dtype='i2')
+        # for each counter output.... run through 
+        place_cell_counter=0
+        for current_count_block in range(0,len(most_y)):
+           line_locations_x=np.where(self.place_cell_id[2]==most_y[current_count_block][0])
+           for current_map_tile in line_locations_x[0]:
+               #print str(current_count_block), str(current_map_tile)
+               place_cell_id_x[current_map_tile]=place_cell_counter
+               place_cell_counter+=1
+               
+        #x_ok=np.where(np.diff(self.place_cell_id[1][self.place_cell_id_x])!=0)       
+        self.place_cell_id[0]=place_cell_id_x
+        # Sort by place cell ID!        
+        self.place_cell_id=self.place_cell_id[:,self.place_cell_id[0,:].argsort()]
+        #self.place_cell_id=np.array([range(0,useable_grid_locations[0].size),useable_grid_locations[0],useable_grid_locations[1]])        
         #print (str(self.place_cell_id))
                 
         
@@ -633,89 +667,148 @@ class maze_from_data:
         except KeyboardInterrupt:
             pass
     
-    
-    def maze_random_walk(self):
+    # Iterate around the maze either using random stepping or generated from paths.poslog    
+    def maze_walk(self, random=True, paths=0):
         
-                
-        new_location_x=self.location_x
-        new_location_y=self.location_y
-        
-        try:
-            ### Wait for key to update
-            while True:
-#                   k = cv2.waitKey(0) & 0xFF
-            # Delay here for each cycle through the maze.....
-                cv2.waitKey(250) & 0xFF
-                # Generate random direction NESW
-                k=np.random.choice(np.array([0,1,2,3]))
-                if k == 27: # ESC
-                    cv2.destroyAllWindows()
-                    break
-            #    elif k == ord('s'):
-            #        cv2.imwrite('/Users/chris/foo.png', gray_img)
-            #        cv2.destroyAllWindows()
-            #        break
-                elif k == 0: # w=forwards
-                    #image = image[::-1]
-                    old_location_x=new_location_x
-                    old_location_y=new_location_y
-                    new_location_x +=self.direction_vector[0]
-                    new_location_y +=self.direction_vector[1]
-                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
-                    if image_found==0:
-                        print "No image"
-                        new_location_x -=self.direction_vector[0]
-                        new_location_y -=self.direction_vector[1]
-                    else:
-                        resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
-                        self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                        self.plot_current_position_on_map(new_location_x,new_location_y)
-                elif k == 1: # s= backwards
-                    #image = image[::-1]
-                    old_location_x=new_location_x
-                    old_location_y=new_location_y
-                    new_location_x -=self.direction_vector[0]
-                    new_location_y -=self.direction_vector[1]
-                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
-                    if image_found==0:
-                        print "No image"
+        # Depending on mode
+        if random:
+            new_location_x=self.location_x
+            new_location_y=self.location_y
+            
+            try:
+                ### Wait for key to update
+                while True:
+                # k = cv2.waitKey(0) & 0xFF
+                # Delay here for each cycle through the maze.....
+                    k=cv2.waitKey(self.step_time_delay) & 0xFF
+                    # Depending on mode
+                    #if random: # Generate random direction NESW
+                    next_step=np.random.choice(np.array([0,1,2,3]))
+                    # Test for button press or location value
+                    if k == 27: # ESC
+                        cv2.destroyAllWindows()
+                        break
+                #    elif k == ord('s'):
+                #        cv2.imwrite('/Users/chris/foo.png', gray_img)
+                #        cv2.destroyAllWindows()
+                #        break
+                    elif next_step == 0: # w=forwards
+                        #image = image[::-1]
+                        old_location_x=new_location_x
+                        old_location_y=new_location_y
                         new_location_x +=self.direction_vector[0]
                         new_location_y +=self.direction_vector[1]
-                    else:
-                        resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
-                        self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                        self.plot_current_position_on_map(new_location_x,new_location_y)
-                elif k == 2: # ,<= left
-                    #image = image[::-1]
-                    #new_location_x -=1
-                    self.new_heading_ind -=1
+                        images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                        if image_found==0:
+                            print "No image"
+                            new_location_x -=self.direction_vector[0]
+                            new_location_y -=self.direction_vector[1]
+                        else:
+                            resized_img=self.concatenate_resize_images(images_to_combine)
+                            self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                            self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
+                            self.plot_current_position_on_map(new_location_x,new_location_y)
+                    elif next_step == 1: # s= backwards
+                        #image = image[::-1]
+                        old_location_x=new_location_x
+                        old_location_y=new_location_y
+                        new_location_x -=self.direction_vector[0]
+                        new_location_y -=self.direction_vector[1]
+                        images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                        if image_found==0:
+                            print "No image"
+                            new_location_x +=self.direction_vector[0]
+                            new_location_y +=self.direction_vector[1]
+                        else:
+                            resized_img=self.concatenate_resize_images(images_to_combine)
+                            self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                            self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
+                            self.plot_current_position_on_map(new_location_x,new_location_y)
+                    elif next_step == 2: # ,<= left
+                        #image = image[::-1]
+                        #new_location_x -=1
+                        self.new_heading_ind -=1
+                        images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                        if image_found==0:
+                            print "No image"
+                            #new_location_x +=1
+                        else:
+                            resized_img=self.concatenate_resize_images(images_to_combine)
+                            self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                            #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+                    elif next_step == 3: # .>= right
+                        #image = image[::-1]
+                        #new_location_x -=1
+                        self.new_heading_ind +=1
+                        images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+                        if image_found==0:
+                            print "No image"
+                            #new_location_x +=1
+                        else:
+                            resized_img=self.concatenate_resize_images(images_to_combine)
+                            self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                            #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+            except KeyboardInterrupt:
+                pass
+
+        else: # use paths
+            old_location_x=self.location_x.copy()
+            old_location_y=self.location_y.copy()
+            new_location_x=paths[0][0]
+            new_location_y=paths[0][1]
+            self.new_heading_ind=paths[0][2]
+            location_count=0 # start from as first location set.....
+            max_steps=paths.shape[0]
+            #image = image[::-1]
+            # new_location_x +=self.direction_vector[0]
+            # new_location_y +=self.direction_vector[1]
+            images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
+            if image_found==0:
+                print "No image"
+                new_location_x -=self.direction_vector[0]
+                new_location_y -=self.direction_vector[1]
+            else:
+                resized_img=self.concatenate_resize_images(images_to_combine)
+                self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
+                self.plot_current_position_on_map(new_location_x,new_location_y)            
+            
+            # This needs to be sorted to allowing sending on values for the next location to move to....
+            try:
+                ### Wait for key to update
+                while True:
+                # k = cv2.waitKey(0) & 0xFF
+                # Delay here for each cycle through the maze.....
+                    k=cv2.waitKey(self.step_time_delay) & 0xFF
+                    if location_count>=max_steps:                    
+                        k=27
+                    # Test for button press or location value
+                    if k == 27: # ESC
+                        cv2.destroyAllWindows()
+                        break
+                    # Continue
+                    #next_step=paths[location_count]
+                    location_count+=1
+                    old_location_x=new_location_x
+                    old_location_y=new_location_y
+                    new_location_x=paths[location_count][0]
+                    new_location_y=paths[location_count][1]
+                    self.new_heading_ind=paths[location_count][2]
                     images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
                     if image_found==0:
-                        print "No image"
-                        #new_location_x +=1
-                    else:
-                        resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
-                        #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
-                elif k == 3: # .>= right
-                    #image = image[::-1]
-                    #new_location_x -=1
-                    self.new_heading_ind +=1
-                    images_to_combine,image_found,self.new_heading_ind,self.direction_vector,image_title,available_directions_index=self.find_next_set_images(new_location_x,new_location_y,self.new_heading_ind)
-                    if image_found==0:
-                        print "No image"
-                        #new_location_x +=1
-                    else:
-                        resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
-                        #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
-        except KeyboardInterrupt:
-            pass        
-    
-        
-        
+                        print 'ERROR -> NO IMAGE FOUND @' + str(paths[location_count])
+                        cv2.destroyAllWindows()
+                        break                                                
+#                        print "No image"
+#                        new_location_x -=self.direction_vector[0]
+#                        new_location_y -=self.direction_vector[1]
+#                    else:
+                    resized_img=self.concatenate_resize_images(images_to_combine)
+                    self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                    self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
+                    self.plot_current_position_on_map(new_location_x,new_location_y)            
+            except KeyboardInterrupt:
+                pass            
         
 if __name__ == '__main__':
     print('FRED')

@@ -9,41 +9,42 @@ from DGStateAlan import DGState, smartCollapse
 #CHANGED FROM PATH TO PATHS AS IPYTHON DOESN'T LIKE FILES/DIRS CALLED PATH
 class Paths:
     
-    def __init__(self, dictNext, N_mazeSize, T_max):
+    def __init__(self, dictNext, N_mazeSize, T_max, start_location=[3,3,0]):
         self.N_mazeSize = N_mazeSize
-        self.posLog        = np.zeros((T_max, 3))  #for training, ground truth states. Includes lightState
-        self.lightAheadLog = np.zeros((T_max, 1))  #true if there is a light ahead of the agent
-        self.lightStateLog = np.zeros((T_max, 1))  #true if there is a light ahead of the agent
+        self.posLog        = np.zeros((T_max, 3),dtype='int16')  #for training, ground truth states. Includes lightState
+        self.lightAheadLog = np.zeros((T_max, 1),dtype='uint8')  #true if there is a light ahead of the agent
+        self.lightStateLog = np.zeros((T_max, 1),dtype='uint8')  #true if there is a light ahead of the agent
+        # Luke - fixed dtype to save time as not fp data -> better for bigger paths
 
-
-        s=[3,3,0]  #state (of agent only).  start at center, facing towards east.
+        #s=[3,3,0]  # Luke send in argument this tile may not exist #state (of agent only).  start at center, facing towards east.
         lightState=0        #there are 4 lights which move when agent reaches NESW respectively
-
+        
+        ### This looks to be the main path generator -> uses start_location and T (steps) 
         for t in range(0,T_max):
 
-            if s[0]==2*N_mazeSize and lightState==0: #E arm
+            if start_location[0]==2*N_mazeSize and lightState==0: #E arm
                 lightState=1 
                 print "light to N"
-            if s[1]==2*N_mazeSize and lightState==1: #N arm
+            if start_location[1]==2*N_mazeSize and lightState==1: #N arm
                 lightState=2
                 print "light to W"
-            if s[0]==0 and lightState==2: #W
+            if start_location[0]==0 and lightState==2: #W
                 lightState=3
                 print "light to S"
-            if s[1]==0 and lightState==3: #S
+            if start_location[1]==0 and lightState==3: #S
                 lightState=0 
                 print "light to E"
             self.lightStateLog[t] = lightState
 
 
-            if s[2]==lightState:            #agent facing in same direction as the lit arm
+            if start_location[2]==lightState:            #agent facing in same direction as the lit arm
                 self.lightAheadLog[t] = 1   #there is a visible light ahead
 
-            self.posLog[t,0:3]=s
+            self.posLog[t,0:3]=start_location
 
-            s_nexts = dictNext[tuple(s)]          #possible next locations
+            s_nexts = dictNext[tuple(start_location)]          #possible next locations
             i = random.randrange(0,len(s_nexts))  #choose a random next location
-            s = s_nexts[i]
+            start_location = s_nexts[i]
 
 
     def getGroundTruthFiring(self,dictSenses,dictGrids,N_mazeSize,t,dghelper=None):
@@ -104,11 +105,12 @@ class Paths:
 
 
 class CA1State:
-    def __init__(self, p_odom, p_senses, dghelper=None):
+    def __init__(self, p_odom, p_senses, dghelper=None, n_places=13):
         i=0
         n_grids=6
         n_hd=4
-        n_places=13
+        # AGAIN n_places
+        # Luke removed! n_places=13
 
         #pdb.set_trace()
 
@@ -184,6 +186,7 @@ class CA1State:
 
 class ECState:           #just flattens grids, and adds lightAhead to the Senses object!
     def __init__(self, arg):
+        self.N_places=13 ## Set to default as 13 but update if included in arguments -> senses
         if isinstance(arg,ECState):  #copy constructor
             self.grids=arg.grids.copy()
             self.hd=arg.hd.copy()
@@ -199,7 +202,9 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
             self.whiskers=senses.whiskers.copy()
             self.rgb=senses.rgb.copy()
             self.lightAhead=lightAhead.copy()
-            self.surfs=senses.surfs.copy() #ALAN
+            self.surfs=senses.surfs.copy() #ALAN # LB if error here changes makeMaze import to correct version!!
+            if len(arg)>=3:
+                self.N_places=arg[3]
         elif isinstance(arg[0], np.ndarray):   #TODO test. COnstruct from a (v_ec:vector, nPlaces:int) tuple
             N_grids=arg[1]
             if arg[1]>6:
@@ -235,7 +240,7 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
         loc.setGrids(ca1grids, dictGrids)
 
         (x_hat_prev, y_hat_prev) = loc.getXY()
-
+        ## Hard coded again here North negative.....
         dxys = [[1,0],[0,1],[-1,0],[0,-1]]  #by hd cell
         ihd = argmax(ca1hd)
         odom_dir = dxys[ihd]
@@ -306,8 +311,8 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
 
         if b_GPSNoise:
             if random.random()<p_flip_odom:    #simulate grid errors- fmove to a random place (as when lost)
-                N_places = 13
-                i = random.randrange(0,N_places) 
+                #N_places = 13 # Luke arguments sent in at top!
+                i = random.randrange(0,self.N_places) # Luke converted to self 
                 loc = Location()
                 loc.setPlaceId(i)
                 ec.grids = loc.getGrids().copy()
@@ -392,6 +397,7 @@ def CA3StateFromInputs(ec, dg, lightState):
 
 def CA3StateFromVector(v_ca3, N_places):
 
+#TODO Another hard coded set here!!!!!!.... What does the light do!!!!!
     N_light=4
     N_hd=4
 
@@ -399,7 +405,7 @@ def CA3StateFromVector(v_ca3, N_places):
 
     place_hd = v_ca3[N_places:N_places + N_places*4]
     place_hd = place_hd.reshape((N_places,N_hd))
-
+    # Luke again the bloody arms!
     light = v_ca3[N_places + N_places*4 : N_places + N_places*4 + N_light]   #which of 4 arms is lit
 
     light_hd = v_ca3[ N_places + N_places*4 + N_light : N_places + N_places*4 + N_light + N_light*N_hd ]
@@ -469,6 +475,7 @@ def smartCollapse(xs):
 
 
 #converts a single place cell vector into an x,y coordinate
+# Luke - This should be updated to recevie place cell inputs
 def placeCells2placeID(_pcs, n_mazeSize):
     n_places = ((2*n_mazeSize)+1) **2 
     pcs = _pcs.copy()

@@ -30,11 +30,13 @@ def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b
         randomIndices = allIndices[0:numOfImages]
         randomSURFs = [ allSURFS[ind] for ind in randomIndices ] 
 
+
+        ## Luke -> THESE MAY NEED TO BE ADJUSTED FOR LARGER MAZ = LARGE NO images....
         #Train weights
-        X=7
-        N=45
+        X=7 #  Number of inputs to each Lamellae
+        N=45 # Number of Lamellae 
         presentationOfData = 30
-        learningrate = 0.05
+        learningrate = 0.05 # Why is this changed here 0.01 elsewhere?
         dghelper = DGStateAlan.train_weights(randomSURFs, X, N, presentationOfData, learningrate)
 
     #Learn ideal weights (with perfect look ahead training)

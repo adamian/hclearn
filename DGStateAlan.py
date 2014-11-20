@@ -206,7 +206,8 @@ class DGHelper:
         #self.CA3CA1weights = normalise(self.CA3CA1weights,2)
 
 class DGState:
-    def __init__(self,  ec, dictGrids, dghelper=None):
+    def __init__(self,  ec, dictGrids, dghelper=None, N_place_cells=13):
+        self.N_place_cells=N_place_cells
         self.dghelper = dghelper
         #HOOK:, needs to use EC data to define "combis" of features aswell
 
@@ -246,13 +247,14 @@ class DGState:
         if not unittesting:
             if dghelper is None:
                 self.encodedValues = np.array([])
-            N_place = 13
-            N_hd = 4       
+            #TODO: Need to remove place cells.... 
+            #self.N_place_cells = 13
+            # N_hd = 4       
 
-            l=Location()       #NEW, pure place cells in DG
-            l.setGrids(ec.grids, dictGrids)
-            self.place=np.zeros(N_place)
-            self.place[l.placeId] = 1
+            loc=Location()       #NEW, pure place cells in DG
+            loc.setGrids(ec.grids, dictGrids)
+            self.place=np.zeros(self.N_place_cells)
+            self.place[loc.placeId] = 1
 
             self.hd_lightAhead = np.zeros(4)
             if ec.lightAhead == 1:

@@ -15,19 +15,25 @@ import cv2
 import os
 import glob
 from win32api import GetSystemMetrics
-from collections import Counter
 
 # Path to images FORWARD SLASHES
-pathname = 'D:/robotology/hclearn/division_street_1'
+pathname = 'D:/robotology/streetview_icub/division_street_randomised_dir_pitch' # 
+# Choose start location (division street)
+location_x=0
+location_y=0
+direction='E'
+
+
+#pathname = 'D:/robotology/hclearn/division_street_1'
+## Choose start location (division street)
+#location_x=5
+#location_y=15
+#direction='E'
+
 heading_index='NESW' #N=0, E=1, S=2, W=3
 window_name='Streetview'
 maze_map='Maze_Map'
 place_cell_map='Place_cell_Map'
-
-# Choose start location (division street)
-location_x=5
-location_y=15
-direction='E'
 
 ##### Find matching 3 files to display
 def find_next_set_images(location_x,location_y,heading,file_database_sorted,picture_name_list):
@@ -250,6 +256,7 @@ def flip_rotate_color_image(image,angles_90):
         image[:,:,current_color]=np.rot90(np.flipud(image[:,:,current_color]),angles_90)
     return image
 
+
 ###### START OF MAIN
     
 ########################################
@@ -393,47 +400,15 @@ if image_found==0:
 display_image(resized_img, image_title, available_directions_index, new_heading_ind)
 ## ALTERNATIVE:: get NESW for location
 
-## Add in place locations.
+## Add in place locations (just use image list).
 ## Build empty array with x and y values...
-place_cell_id=np.array([np.zeros(useable_grid_locations[0].size,dtype='i2'),useable_grid_locations[0],useable_grid_locations[1]])
-
-
-# 1. Order using longest x road (e.g. division street) => has most identical y values
-most_y=Counter(place_cell_id[2]).most_common()
-place_cell_id_x=np.zeros(useable_grid_locations[0].size,dtype='i2')
-# for each counter output.... run through 
-place_cell_counter=0
-for current_count_block in range(0,len(most_y)):
-   line_locations_x=np.where(place_cell_id[2]==most_y[current_count_block][0])
-   for current_map_tile in line_locations_x[0]:
-       #print str(current_count_block), str(current_map_tile)
-       place_cell_id_x[current_map_tile]=place_cell_counter
-       place_cell_counter+=1
-       
-x_ok=np.where(np.diff(place_cell_id[1][place_cell_id_x])!=0)       
-place_cell_id[0]=place_cell_id_x
-       
-## 2. Order using verticals (y) => longest x
-#most_x=Counter(place_cell_id[1]).most_common()
-#place_cell_id_y=np.zeros(useable_grid_locations[0].size,dtype='i2')
-#place_cell_counter=0
-#for current_count_block in range(0,len(most_x)):
-#   line_locations_y=np.where(place_cell_id[1]==most_x[current_count_block][0])
-#   for current_map_tile in line_locations_y[0]:
-#       #print str(current_count_block), str(current_map_tile)
-#       place_cell_id_y[current_map_tile]=place_cell_counter
-#       place_cell_counter+=1
-
-
+place_cell_id=np.array([range(0,useable_grid_locations[0].size),useable_grid_locations[0],useable_grid_locations[1]])
 
 # plot these on the map
 map_place_out=plot_place_cell_id_on_map(map_template,place_cell_id)
 
 ### Put current location on map
 map_image_display=plot_current_position_on_map(map_template,useable_grid_locations,location_x,location_y)
-
-
-
 
 try:
     ### Wait for key to update

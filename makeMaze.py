@@ -66,9 +66,11 @@ def findSurfs(x,y,ith,SURFdict):
         else:
             return surfFeatures[0]
     else:
-        #print("No feature for key: %s" % (key,))
+        # LB switched this on for missing images        
+        print("No feature for (x,y,direction) key: %s" % (key,))
         firstDesc = SURFdict.values()[0][0]
         #If no feature exists, just send back an empty feature set?
+        
         return np.array([0]*len(firstDesc))
         #Or we could raise an exception since it should never really happen
         #raise NameError("There isn't a surf feature description for: %s" % (key,))
@@ -82,7 +84,7 @@ def makeMaze(n, b_useNewDG=False, prefixFolder = None):
         if printMessages:
             print("SURFDICTKEYS:%s" % surfDict.keys())
     dictSenses=dict()           # sensory info for a given location 
-    dictAvailableActions=dict() # available actions for a given location
+    dictAvailableActions=dict() # available actions for a given location -> forwards, left, right, stay (No backwards)
     dictNext=dict()             # where you would end up next having taken a given action (M.E. I think!)
     step_xs =  [1, 0, -1,  0]   #converts ith angles into x,y vector headings
     step_ys =  [0, 1,  0, -1]

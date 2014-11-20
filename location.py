@@ -104,7 +104,7 @@ class Location:
 #        (x,y)=self.getXY()
 #        return getGrids(x,y)
 
-    # TODO for resizable
+    # TODO for resizable # LUKE -> will send in direct place cell rather than assigning by location 
     def getXY(self):
         if self.placeId > 9:
             d = (self.placeId-9)* np.array([0, -1])
