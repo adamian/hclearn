@@ -19,8 +19,8 @@ class History:
         self.str_title = str_title
 
 def makeMAPPredictions(path,dictGrids, dictSenses, WB, WR, WS, WO, dghelper, b_obsOnly, b_usePrevGroundTruthCA3, b_useGroundTruthGrids, b_useSub, str_title, b_learn):  
- 
-    (ecs_gnd, dgs_gnd, ca3s_gnd) = path.getGroundTruthFirings(dictSenses, dictGrids, path.N_mazeSize, dghelper)    
+#    (ecs_gnd, dgs_gnd, ca3s_gnd) = path.getGroundTruthFirings(dictSenses, dictGrids, path.N_mazeSize, dghelper)     
+    (ecs_gnd, dgs_gnd, ca3s_gnd) = path.getGroundTruthFirings(dictSenses, dictGrids, dghelper)   # Luke: MOD 
 
     ca3 = ca3s_gnd[0]
     ca1 = ECState(ecs_gnd[0])    #used to update grids!    
@@ -41,9 +41,11 @@ def makeMAPPredictions(path,dictGrids, dictSenses, WB, WR, WS, WO, dghelper, b_o
 
     for t in range(1,T): 
         if b_useGroundTruthGrids:
-            ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=True) 
+            ec = ecs_gnd[t].makeNoisyCopy(dictGrids, b_GPSNoise=True) # LB added 
+#            ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=True) 
         else:
-            ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=False) #add observation noise (inc. noisy GPS, which may be overriden by odometry)        
+#            ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=False) #add observation noise (inc. noisy GPS, which may be overriden by odometry)        
+            ec = ecs_gnd[t].makeNoisyCopy(dictGrids,b_GPSNoise=False) #add observation noise (inc. noisy GPS, which may be overriden by odometry)    # LB: added    
             ec.hd = []        #kill old values to prevent any bugs creeping in!
             ec.placeCells=[]
             b_odom = sum(path.posLog[t,0:2] != path.posLog[t-1  ,0:2])>0    #have I moved?
@@ -56,8 +58,8 @@ def makeMAPPredictions(path,dictGrids, dictSenses, WB, WR, WS, WO, dghelper, b_o
                 b_odom = not b_odom
             if np.random.random() < p_noise:
                 d_th = (d_th + (-1)**(np.floor(2*np.random.random())) )%4
-
-            ec.updateGrids(ca1.grids, ca1.hd, b_odom, path.N_mazeSize, dictGrids)    #overwrite grids with odom (NB uses PREVIOUS hd)
+            ec.updateGrids(ca1.grids, ca1.hd, b_odom, dictGrids)  # Luke MOD  #overwrite grids with odom (NB uses PREVIOUS hd)
+#            ec.updateGrids(ca1.grids, ca1.hd, b_odom, path.N_mazeSize, dictGrids)    #overwrite grids with odom (NB uses PREVIOUS hd)
             ec.updateHeading(ca1.hd, d_th) 
 
         (dg, ca3, ca1,  sub_err, sub_int, sub_fire) = makeMAPPredictionsStep(dictGrids, ec, ca3, ca3s_gnd[t-1], sub_int, WB, WR, WS, WO,  b_obsOnly, b_usePrevGroundTruthCA3, b_useSub, dghelper)
@@ -75,8 +77,8 @@ def makeMAPPredictions(path,dictGrids, dictSenses, WB, WR, WS, WO, dghelper, b_o
         #learning steps (weight changes are made in-place)
         if b_learn:
             b_fakeSub = np.floor(2*np.random.random())                       #train with/without rec+odom, to encourage WB to learn true biases
-            wakeStep(ec, ca3, WB, WR, WS, WO, b_fakeSub)
-            sleepStep(ec, ca3, WB, WR, WS, WO, b_fakeSub)
+            wakeStep(ec, ca3, WB, WR, WS, WO, b_fakeSub, dictGrids) # Luke added dictGrids
+            sleepStep(ec, ca3, WB, WR, WS, WO, b_fakeSub, dictGrids)  # Luke added dictGrids
 
     return History(ec_log, dg_log, ca3_log, ca1_log, sub_ints, sub_errs, sub_fires, surf_gnd_log, str_title)           #remove bias column from CA3
 
@@ -95,7 +97,7 @@ def getWeightChange(hids, input):
 #Sample CA3.
 #Just use ECDG, CA3 to Hebb update weights ECDG->CA3 and CA3->CA1 (pretend CA1 was forced to match ECDG)
 #
-def wakeStep(ec, ca3, WB, WR, WS, WO, b_fakeSub):
+def wakeStep(ec, ca3, WB, WR, WS, WO, b_fakeSub, dictGrids): # Luke added dictGrids
     v_senses      = np.hstack((ec.toVectorSensesOnlyD(dictGrids), 1))
     v_odom        = np.hstack((ec.toVectorOdomOnlyD(dictGrids), 1))
     v_ca3_prev    = np.hstack((ca3.toVector(), 1))       
@@ -134,7 +136,7 @@ def wakeStep(ec, ca3, WB, WR, WS, WO, b_fakeSub):
 # Sample CA3 (T=1)
 # Unlearn
 #
-def sleepStep(ec, ca3, WB, WR, WS, WO, b_fakeSub):
+def sleepStep(ec, ca3, WB, WR, WS, WO, b_fakeSub, dictGrids):  # Luke added dictGrids
 
     #for encapsulation -- sample again from CA3 at T=1  (could speed up by reusing wake step?)
     v_senses      = np.hstack((ec.toVectorSensesOnlyD(dictGrids), 1))
@@ -177,7 +179,7 @@ def sleepStep(ec, ca3, WB, WR, WS, WO, b_fakeSub):
 
 
 #***I HAVE CHANGED THIS VERSION TO TAKE CA3_GND_{T-1} TO COMAPRE WITH TEST, THIS DIFFERS FROM IJCNN ONE!!!***
-def makeMAPPredictionsStep(dictGrids, ec, ca3, ca3_PREV_gnd, sub_int, WB, WR, WS, WO,  b_obsOnly, b_usePrevGroundTruthCA3, b_useSub, dghelper=None):
+def makeMAPPredictionsStep(dictGrids, ec, ca3, ca3_PREV_gnd, sub_int, WB, WR, WS, WO,  b_obsOnly, b_usePrevGroundTruthCA3, b_useSub, dghelper=None): # Luke added Nmax
 
     sub_thresh=0.26;  sub_fire=0
     if (b_useSub and sub_int>sub_thresh):
@@ -194,9 +196,9 @@ def makeMAPPredictionsStep(dictGrids, ec, ca3, ca3_PREV_gnd, sub_int, WB, WR, WS
         v_ca3    = np.hstack((ca3.toVector(), 1))                   
 
     N_places = dg.place.shape[0] # Does this work to get correct no places!!!!!!
-    N_grids = ec.grids.shape[1]*2
-    N_ec = ec.toVector().shape[0]
-    N_ca3 = len(v_ca3)
+    #N_grids = ec.grids.shape[1]*2  # Luke -> Unused
+    #N_ec = ec.toVector().shape[0]  # Luke -> Unused
+    #N_ca3 = len(v_ca3) # Luke -> Unused
 
     pb   = boltzmannProbs(WB, np.array((1.0)))           #global prior
 
@@ -235,8 +237,9 @@ def makeMAPPredictionsStep(dictGrids, ec, ca3, ca3_PREV_gnd, sub_int, WB, WR, WS
     #print("p_odom: %s" % p_odom)
     #print("p_senses: %s" % p_senses)
     #ALAN - The last sense is "whiskers left and right on" this is almost always on, thus in the CA1State can be decoded to mean "whiskers left and right on"
+    # Need to get from grid size!!!!!
 
-    ca1 = CA1State(p_odom, p_senses, dghelper, N_places)   #N_places added by luke           #lots of smart decoding done in here
+    ca1 = CA1State(p_odom, p_senses, dghelper, dictGrids)   #dictGrids added by luke           #lots of smart decoding done in here
     
     #HOOK-ALAN set weights for each error in the subiculum so they add up to one (so surfs don't count much more towards the final error than the others)
     whiskersWeighted = np.sum(ca1.whiskers!=ec.whiskers)/float(len(ca1.whiskers))

@@ -5,7 +5,7 @@ import numpy as np
 import pyflann as flann
 import unittest
 import re
-#import makeMaze_resizeable as mm
+import makeMazeResizeable as mm
 import os.path
 
 printMessages = False
@@ -327,8 +327,10 @@ class TestExtractor(unittest.TestCase):
 
 
     def test_merge_senses_and_features(self):
-        N_mazeSize = 3
-        [dictSenses, dictAvailableActions, dictNext] = mm.makeMaze(N_mazeSize)     #make maze, including ideal percepts at each place
+#        N_mazeSize = 3
+#        print('WARNING -> USING FIXED MAZE SIZE =3')
+#        [dictSenses, dictAvailableActions, dictNext] = mm.makeMaze(N_mazeSize)     #make maze, including ideal percepts at each place
+        [dictSenses, dictAvailableActions, dictNext] = mm.makeMaze(self.folder)  # Luke Mod   #make maze, including ideal percepts at each place
         print("TESTING\n%s"%dictSenses)
 
     def test_makeSURFRepresentation(self):
@@ -563,7 +565,7 @@ def calculateSharedFeatures(featureVector1, featureVector2):
 
 class TestComparisons(unittest.TestCase):
     def setUp(self):
-        self.regentImages = [prefixFolder + "3-1-S-Midday.jpg", prefixFolder + "4-3-E-Midday.jpg"]
+        self.regentImages = [self.prefixFolder + "3-1-S-Midday.jpg", self.prefixFolder + "4-3-E-Midday.jpg"]
         self.images= ["room1.jpg", "room2.jpg", "window.jpg", "labs1.jpg", "labs2.jpg", "bottle.jpg"]
         self.images = [ rootFolder + im for im in self.images ]
         #Load the images

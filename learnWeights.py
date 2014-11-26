@@ -1,5 +1,6 @@
 import numpy as np
-from makeMaze import *
+from makeMazeResizeable import * # LB: MODified
+# from makeMaze import *
 from paths import * 
 from cffun import *
 from rbm import *
@@ -12,8 +13,8 @@ def err(ps, hids):
 def fuse2(p1,p2):
     return 1.0 / (1.0 +   ((1-p1)*(1-p2)/(p1 * p2)  ))
 
-
-def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b_learnIdeal=True, b_learnTrained=False, b_learnDGWeights=True, learningRate=0.01,tr_epochs=10):
+#def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b_learnIdeal=True, b_learnTrained=False, b_learnDGWeights=True, learningRate=0.01,tr_epochs=10):
+def learn(path, dictSenses, dictGrids, ecs_gnd, dgs_gnd, ca3s_gnd, b_learnIdeal=True, b_learnTrained=False, b_learnDGWeights=True, learningRate=0.01,tr_epochs=10):
     dghelper=None
     #Learn DG weights when you have visual input
     if b_learnDGWeights:
@@ -42,7 +43,8 @@ def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b
     #Learn ideal weights (with perfect look ahead training)
     if b_learnIdeal: #latest :  lots of odom noise    
         print "TRAINING IDEAL WEIGHTS..."
-        (ecs_nsy, dgs_nsy, ca3s_nsy) = path.getNoiseyGPSFirings(dictSenses, dictGrids, N_mazeSize, dghelper)  #ideal percepts for path, for trainign and for inference
+#        (ecs_nsy, dgs_nsy, ca3s_nsy) = path.getNoiseyGPSFirings(dictSenses, dictGrids, N_mazeSize, dghelper)  #ideal percepts for path, for trainign and for inference
+        (ecs_nsy, dgs_nsy, ca3s_nsy) = path.getNoiseyGPSFirings(dictSenses, dictGrids, dghelper)  #ideal percepts for path, for trainign and for inference
 
         senses = ecs2vd_so(ecs_nsy,dictGrids, dghelper) 
 
@@ -77,7 +79,7 @@ def learn(path, dictSenses, dictGrids, N_mazeSize, ecs_gnd, dgs_gnd, ca3s_gnd, b
         WO = np.load('WO.npy')
         WS = np.load('WS.npy')
         WB = np.load('WB.npy')
-        WB=WB.reshape((86,1))
+        WB = WB.reshape((WB.shape[0],1))#((86,1)) # LB: Why the %%%% is this 86!!!!
         #No longer need the above lines as they are a hack and the wrong size
 
         ##these are all to be learned, so overwrite them with rands

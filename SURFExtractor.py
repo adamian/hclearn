@@ -59,7 +59,7 @@ class SURFExtractor(object):
                         #Add the new file onto the end of the keys list (since there can be multiple images for one direction)
                         self.files[key].append(fullFilePath)
                     else:
-                        raise NameError("Heading is: %s\nit should be N S E or W" % parts[2])
+                        raise NameError("Heading is: %s\nit should be N E S or W" % parts[2])
                 else:
                     print folder
                     print file
@@ -343,6 +343,7 @@ class TestExtractor(unittest.TestCase):
 
     def test_findSurfs(self):
         #Test that given an x y and direction from a dictionary it is possible to find the surf feature!
+    # No idea on this!!!!!        
         adict = {((1,4),'N'): [np.array([1,0])], ((3,4),'E'): [np.array([1,1]), np.array([0,1])]}
         x = 3
         y = 4

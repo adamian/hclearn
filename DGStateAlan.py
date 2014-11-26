@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import unittest
 import numpy as np
 import random
-from location import Location
+from locationLuke import Location
 
 
 #Use a seed so results are consistent
@@ -206,8 +206,13 @@ class DGHelper:
         #self.CA3CA1weights = normalise(self.CA3CA1weights,2)
 
 class DGState:
-    def __init__(self,  ec, dictGrids, dghelper=None, N_place_cells=13):
-        self.N_place_cells=N_place_cells
+#    def __init__(self,  ec, dictGrids, dghelper=None, N_place_cells=13):
+    def __init__(self,  ec, dictGrids, dghelper=None): # Luke modified....
+        if hasattr(dictGrids,'dictPlace'):
+            self.N_place_cells=len(dictGrids.dictPlace) # N_place_cells
+        else:
+            print 'Using default place cells = 13'
+            self.N_place_cells=13
         self.dghelper = dghelper
         #HOOK:, needs to use EC data to define "combis" of features aswell
 
@@ -250,10 +255,10 @@ class DGState:
             #TODO: Need to remove place cells.... 
             #self.N_place_cells = 13
             # N_hd = 4       
-
-            loc=Location()       #NEW, pure place cells in DG
-            loc.setGrids(ec.grids, dictGrids)
-            self.place=np.zeros(self.N_place_cells)
+            loc=Location(dictGrids) #NEW, pure place cells in DG # Luke added in Nmax
+            loc.setGrids(ec.grids)
+            #print str(ec.grids)
+            self.place=np.zeros(self.N_place_cells)         
             self.place[loc.placeId] = 1
 
             self.hd_lightAhead = np.zeros(4)

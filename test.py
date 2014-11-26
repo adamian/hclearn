@@ -1,14 +1,11 @@
 from numpy import *
 import numpy as np
 import pdb
-
-from makeMaze import *
+#from makeMaze import *
+from makeMazeResizeable import *
 from paths import *
-
 from cffun import *
-
 from rbm import *
-
 
 def err(ps, hids):
     return sum( (ps-hids)**2 ) / hids.shape[0]
@@ -21,7 +18,7 @@ def fuse2(p1,p2):
 WR = np.load('tWR.npy')
 WO = np.load('tWO.npy')
 WS = np.load('tWS.npy')
-WB = np.load('tWB.npy'); WB=WB.reshape((86,1))
+WB = np.load('tWB.npy'); WB=WB.reshape((86,1)) ## WHY 86 LB!
 
 WR = np.random.random(WR.shape)
 
@@ -76,24 +73,24 @@ for t in range(0,T):
     v_ca3_gnd = ca3_gnd_b[t,:]
 
     #TODO make CA3 smart structure -- for hat only (its already optimal in gnd)
-    ca3 = CA3StateFromVector(v_ca3_hat, 13)
+    ca3 = CA3StateFromVector(v_ca3_hat,N_places) # Altered by luke, 13)
     ca3.smartCollapse()
     v_ca3_hat = hstack((ca3.toVector(),1))
 
     p_odom   = boltzmannProbs(WO.transpose(), v_ca3_hat) #probs for CA1 cells
     p_senses = boltzmannProbs(WS.transpose(), v_ca3_hat) #probs for CA1 cells
-    ca1 = CA1State(p_odom, p_senses)
-    loc = Location()
-    loc.setGrids(ca1.grids, dictGrids)
+    ca1 = CA1State(p_odom, p_senses,_,dictGrids) # Luke added dictGrids (removed n_places)
+    loc = Location(dictGrids) # Luke modified
+    loc.setGrids(ca1.grids) # Luke modified
     xy_hat[t,:] = loc.getXY()
     
 
     #get ground truth xy, from decoding ground truth hids?
     p_odom   = boltzmannProbs(WO.transpose(), v_ca3_gnd) #probs for CA1 cells
     p_senses = boltzmannProbs(WS.transpose(), v_ca3_gnd) #probs for CA1 cells
-    ca1 = CA1State(p_odom, p_senses)
-    loc = Location()
-    loc.setGrids(ca1.grids, dictGrids)
+    ca1 = CA1State(p_odom, p_senses,_,dictGrids) # Luke added dictGrids (removed n_places)
+    loc = Location(dictGrids)# Luke modified
+    loc.setGrids(ca1.grids)# Luke modified
     xy_gnd[t,:] = loc.getXY()
     
 

@@ -1,10 +1,11 @@
 from cffun import *
 #from makeMaze import Senses
 from makeMazeResizeable import Senses
-from location import Location
+from locationLuke import Location # Luke added custom code -> resizeable
+#from location import Location
 from DGStateAlan import DGState, smartCollapse
 #Senses, makeMaze
-
+print_messages=True # original False LB
 #A path is a log of random walk locations and sensations.
 #CHANGED FROM PATH TO PATHS AS IPYTHON DOESN'T LIKE FILES/DIRS CALLED PATH
 class Paths:
@@ -12,33 +13,38 @@ class Paths:
     def __init__(self, dictNext, N_mazeSize, T_max, start_location=[3,3,0]):
         self.N_mazeSize = N_mazeSize
         self.posLog        = np.zeros((T_max, 3),dtype='int16')  #for training, ground truth states. Includes lightState
-        self.lightAheadLog = np.zeros((T_max, 1),dtype='uint8')  #true if there is a light ahead of the agent
-        self.lightStateLog = np.zeros((T_max, 1),dtype='uint8')  #true if there is a light ahead of the agent
+        #self.lightAheadLog = np.zeros((T_max, 1),dtype='uint8') #LB removed #true if there is a light ahead of the agent
+        #self.lightStateLog = np.zeros((T_max, 1),dtype='uint8') #LB removed #true if there is a light ahead of the agent
         # Luke - fixed dtype to save time as not fp data -> better for bigger paths
 
         #s=[3,3,0]  # Luke send in argument this tile may not exist #state (of agent only).  start at center, facing towards east.
-        lightState=0        #there are 4 lights which move when agent reaches NESW respectively
+        #lightState=0  # LB removed!      #there are 4 lights which move when agent reaches NESW respectively
         
         ### This looks to be the main path generator -> uses start_location and T (steps) 
         for t in range(0,T_max):
 
-            if start_location[0]==2*N_mazeSize and lightState==0: #E arm
-                lightState=1 
-                print "light to N"
-            if start_location[1]==2*N_mazeSize and lightState==1: #N arm
-                lightState=2
-                print "light to W"
-            if start_location[0]==0 and lightState==2: #W
-                lightState=3
-                print "light to S"
-            if start_location[1]==0 and lightState==3: #S
-                lightState=0 
-                print "light to E"
-            self.lightStateLog[t] = lightState
-
-
-            if start_location[2]==lightState:            #agent facing in same direction as the lit arm
-                self.lightAheadLog[t] = 1   #there is a visible light ahead
+#==============================================================================
+# Luke removed
+#             if start_location[0]==2*N_mazeSize and lightState==0: #E arm
+#                 lightState=1
+#                 if print_messages:
+#                     print "light to N"
+#             if start_location[1]==2*N_mazeSize and lightState==1: #N arm
+#                 lightState=2
+#                 if print_messages:
+#                     print "light to W"
+#             if start_location[0]==0 and lightState==2: #W
+#                 lightState=3
+#                 if print_messages:
+#                     print "light to S"
+#             if start_location[1]==0 and lightState==3: #S
+#                 lightState=0 
+#                 if print_messages:
+#                     print "light to E"
+#             self.lightStateLog[t] = lightState
+#             if start_location[2]==lightState:            #agent facing in same direction as the lit arm
+#                 self.lightAheadLog[t] = 1   #there is a visible light ahead
+#==============================================================================
 
             self.posLog[t,0:3]=start_location
 
@@ -47,11 +53,13 @@ class Paths:
             start_location = s_nexts[i]
 
 
-    def getGroundTruthFiring(self,dictSenses,dictGrids,N_mazeSize,t,dghelper=None):
+    def getGroundTruthFiring(self,dictSenses,dictGrids,t,dghelper=None):
 
          loc        = self.posLog[t,:]
-         lightState = self.lightStateLog[t,0]     #which physical light (eg 
-         lightAhead = self.lightAheadLog[t,0]
+         lightState = np.zeros(1,dtype='i1') #LB disabled! #self.lightStateLog[t,0]     #which physical light (eg 
+         lightAhead = np.zeros(1,dtype='i1') #LB disabled! self.lightAheadLog[t,0]
+         print 'Luke -> Lights SET TO ZERO!!!'
+         
          senses = dictSenses[tuple(loc)]    
          #HOOK include SURF features in dictSenses structure
          ecState = ECState((senses, lightAhead))
@@ -67,14 +75,14 @@ class Paths:
 
     #makes a "data" matrix, with cols of IDEAL EC and DG outputs. (No noise, and perfect GPS).
     #also returns the ideal CA3 output (used for training) and the raw positions.
-    def getGroundTruthFirings(self, dictSenses, dictGrids, N_mazeSize, dghelper=None):
+    def getGroundTruthFirings(self, dictSenses, dictGrids, dghelper=None):
         print "get ground truth firings"
         T_max = self.posLog.shape[0]
         ecStates = []  #fill with ECState objects
         dgStates = [] #fill with DGState objects
         ca3States = []
         for t in range(0,T_max):
-            (ecState,dgState,ca3State,odom) = self.getGroundTruthFiring(dictSenses,dictGrids,N_mazeSize,t,dghelper) 
+            (ecState,dgState,ca3State,odom) = self.getGroundTruthFiring(dictSenses,dictGrids,t,dghelper) 
             ecStates.append(ecState)           
             dgStates.append(dgState)         
             ca3States.append(ca3State)
@@ -84,17 +92,17 @@ class Paths:
     
     #for training only. (Real inference uses noiseless, and adds its own noise AND odometry)
     #this assumes the noise is due to noisy GPS -- not to lost odometry
-    def getNoiseyGPSFirings(self, dictSenses, dictGrids, N_mazeSize, dghelper=None):
+    def getNoiseyGPSFirings(self, dictSenses, dictGrids, dghelper=None):
         T_max = self.posLog.shape[0]
         ecStates = []  #fill with ECState objects
         dgStates = [] #fill with DGState objects
         ca3States = []
         for t in range(0,T_max):
-            (ecState,dgState,ca3State,odom) = self.getGroundTruthFiring(dictSenses,dictGrids,N_mazeSize,t,dghelper)
+            (ecState,dgState,ca3State,odom) = self.getGroundTruthFiring(dictSenses,dictGrids,t,dghelper)
             
-            lightState = self.lightStateLog[t,0]
+            lightState = np.zeros(1,dtype='i1') #LB -> Removed this again to zero!!! self.lightStateLog[t,0]
 
-            ecState = ecState.makeNoisyCopy()
+            ecState = ecState.makeNoisyCopy(dictGrids)
             dgState = DGState(ecState, dictGrids, dghelper)
             ca3State = CA3StateFromInputs(ecState, dgState, lightState)
 
@@ -105,26 +113,27 @@ class Paths:
 
 
 class CA1State:
-    def __init__(self, p_odom, p_senses, dghelper=None, n_places=13):
+    def __init__(self, p_odom, p_senses, dghelper=None, dictGrids=None): # Nmax=3, n_places=13) # Luke altered
         i=0
-        n_grids=6
+        # n_grids=6 # Luke commented -> unused
         n_hd=4
         # AGAIN n_places
         # Luke removed! n_places=13
-
+        #Nmax=dictGrids.Nmax
+        n_places=len(dictGrids.grid2place_index)
         #pdb.set_trace()
 
-        p_grids  = p_odom[i:i+n_grids];   i+=n_grids
+        #p_grids  = p_odom[i:i+n_grids];   i+=n_grids # Luke commented -> unused
         p_hd     = p_odom[i:i+n_hd];      i+=n_hd
         p_places = p_odom[i:i+n_places];  i+=n_places
 
         i=0
-        n_whiskers=3
+        #n_whiskers=3 # luke commented -> unused
         n_rgb=3
         n_lightAhead=1
         n_whiskerCombis=3
         
-        p_whiskers = p_senses[i:i+n_whiskers]; i+=n_whiskers
+        #p_whiskers = p_senses[i:i+n_whiskers]; i+=n_whiskers # Luke commented -> unused
         p_rgb = p_senses[i:i+n_rgb]; i+=n_rgb
         p_lightAhead = p_senses[i:i+n_lightAhead]; i+=n_lightAhead
         p_whiskerCombis = p_senses[i:i+n_whiskerCombis]; i+=n_whiskerCombis
@@ -133,16 +142,16 @@ class CA1State:
         #decode remaining sensors which are the features previously encoded
         if dghelper is not None:
             #Get the number of surf features
-            n_surfFeatures = dghelper.numOfSurfFeatures
+            # n_surfFeatures = dghelper.numOfSurfFeatures # L_B: Switched off as not used
             #Get the number of encoded features
             n_encoded = dghelper.numOfEncodedFeatures
             #print("Num of surf features: %d\nNum of encodedFeatures: %d\nNum of all feautres: %d" % (n_surfFeatures, n_encoded, (n_surfFeatures+n_encoded)))
-            p_surfFeatures = p_senses[i:i+n_surfFeatures]; i+=n_surfFeatures
+            # p_surfFeatures = p_senses[i:i+n_surfFeatures]; i+=n_surfFeatures # L_B: Switched off as not used
             p_encoded = p_senses[i:i+n_encoded]; i+=n_encoded
 
             #We now have two sources of surf, one from the probabilities that came from EC into CA3, and one from the DG encoded going into CA3
             #Dumb decode the former:
-            surfFromEC = (p_surfFeatures>0.5)
+            # surfFromEC = (p_surfFeatures>0.5) # L_B: Switched off as not used
 
             #Very smart decode... use the weights learnt to decode back to EC space
             surfFromDG = dghelper.decode(p_encoded)
@@ -158,8 +167,9 @@ class CA1State:
         #print("p_whiskerCombis: %s" % p_whiskerCombis)
         self.whiskerCombis = smartCollapse(p_whiskerCombis)
         
-        loc=Location()
-        loc.setPlaceId(argmax(self.places))
+        loc=Location(dictGrids) # Luke added Nmax (grid cell encoding size)
+        # loc=Location()        
+        loc.setPlaceId(argmax(self.places)) # Luke Should be ok as takes in maximum place!
         self.grids=loc.getGrids()
 
         #dumb decodes
@@ -186,7 +196,7 @@ class CA1State:
 
 class ECState:           #just flattens grids, and adds lightAhead to the Senses object!
     def __init__(self, arg):
-        self.N_places=13 ## Set to default as 13 but update if included in arguments -> senses
+        self.N_places=13 ## LB: Set to default as 13 but update if included in arguments -> senses
         if isinstance(arg,ECState):  #copy constructor
             self.grids=arg.grids.copy()
             self.hd=arg.hd.copy()
@@ -194,6 +204,7 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
             self.rgb=arg.rgb.copy()
             self.lightAhead=arg.lightAhead.copy()
             self.surfs=arg.surfs.copy() #ALAN
+            self.N_places=arg.N_places # LB this may FLAG a fail as not in senses -> check
         elif isinstance(arg[0], Senses):    #contruct from a (s:Senses, lightAhead:bool) tuple
             senses=arg[0]
             lightAhead=arg[1]
@@ -203,7 +214,7 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
             self.rgb=senses.rgb.copy()
             self.lightAhead=lightAhead.copy()
             self.surfs=senses.surfs.copy() #ALAN # LB if error here changes makeMaze import to correct version!!
-            if len(arg)>=3:
+            if len(arg)>=3: # Luke added -> use third input as number of place cell locations!
                 self.N_places=arg[3]
         elif isinstance(arg[0], np.ndarray):   #TODO test. COnstruct from a (v_ec:vector, nPlaces:int) tuple
             N_grids=arg[1]
@@ -234,38 +245,73 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
 
     #NB my grids arne't Vechure-style attractors; rahter they passively sum CA1 with odom
     #doign so assumes that the HC output is always right, unless speciafically lost. (Noisy GPS)
-    def updateGrids(self, ca1grids, ca1hd, b_odom, N_mazeSize, dictGrids):  
-
-        loc=Location()
-        loc.setGrids(ca1grids, dictGrids)
+#    def updateGrids(self, ca1grids, ca1hd, b_odom, N_mazeSize, dictGrids):  
+    def updateGrids(self, ca1grids, ca1hd, b_odom, dictGrids): #LB: Modified  
+        # Luke -> I think the problem is here?????
+        
+        ##### LUKE -> b_odom means there has been a movement!
+        loc=Location(dictGrids)
+        loc.setGrids(ca1grids)
 
         (x_hat_prev, y_hat_prev) = loc.getXY()
         ## Hard coded again here North negative.....
-        dxys = [[1,0],[0,1],[-1,0],[0,-1]]  #by hd cell
+        # Luke old ver -> N, S, E, W        
+        # DONT USE dxys = [[1,0],[0,1],[-1,0],[0,-1]]  #by hd cell
+        
+        # Luke altered coding to N, E, S, W        
+        dxys = [[1,0],[-1,0],[0,1],[0,-1]]        
+        
+        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        # Luke - TESTING --------------------------------@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        # Dont really get this -> Is it just triggered n forward!!!!!!
+        # looking N is that 0x -1y?
+        # looking E is that 1x 0y?
+        # looking S is that 0x 1y?
+        # looking W is that -1x 0y?        
+        #dxys = [[0,-1],[1,0],[0,1],[-1,0]]         
+        
+        
         ihd = argmax(ca1hd)
         odom_dir = dxys[ihd]
 
-        odom = [0,0]
+        odom = [0,0] # Luke -> this just uses 0 if b_odom false why?
         if b_odom:
             odom=odom_dir
         
         x_hat_now = x_hat_prev + odom[0]
         y_hat_now = y_hat_prev + odom[1]       
         
+        if print_messages and b_odom:
+            print 'Old, x='+str(x_hat_prev)+' y='+str(y_hat_prev)
+            print 'Attempting New, x='+str(x_hat_now)+' y='+str(y_hat_now)            
+        
         ##SMART UPDATE -- if odom took us outside the maze, then ignore it
         #pdb.set_trace()
 
-        ##if this takes me to somewhere not having a '3'(=N_mazeSize) in the coordinate, then the move was illegal?
-        if sum( (x_hat_now==N_mazeSize) + (y_hat_now==N_mazeSize))==0:
-            print "OFFMAZE FIX: OLD:" ,x_hat_now, y_hat_now
-            x_hat_now = x_hat_prev
-            y_hat_now = y_hat_prev
-            print "NEW:",x_hat_now, y_hat_now
-        x_hat_now = crop(x_hat_now, 0, 2*N_mazeSize)
-        y_hat_now = crop(y_hat_now, 0, 2*N_mazeSize)  #restrict to locations in the maze
+
+        ## Luke need to fix this -> not same as orig...
+
+        ##if this takes me to somewhere not having a '3'(=dictGrids.Nmax) in the coordinate, then the move was illegal?
+        #if sum( (x_hat_now==dictGrids.Nmax) + (y_hat_now==dictGrids.Nmax))==0:
+        # LB: modified to look at available place cells....
+        placeId=loc.setXY(x_hat_now,y_hat_now)
+        if placeId is None:
+            if print_messages:
+                print "New step OFFMAZE -> using original location"
+                print "New step:", x_hat_now, y_hat_now
+#            x_hat_now = x_hat_prev # LB commented
+#            y_hat_now = y_hat_prev # LB commented
+            loc.setXY(x_hat_prev, y_hat_prev)
+            if print_messages:
+#                print "Back to original:",x_hat_now, y_hat_now
+                print "Back to original:",x_hat_prev, y_hat_prev
+
+# LUKE -> removed this......
+#        x_hat_now = crop(x_hat_now, 0, 2*dictGrids.Nmax)
+#        y_hat_now = crop(y_hat_now, 0, 2*dictGrids.Nmax)  #restrict to locations in the maze
             
-        loc=Location()
-        loc.setXY(x_hat_now, y_hat_now)
+        #loc=Location(dictGrids) # Luke-> This probably doesnt need to be re-run as its already initialised 
+        #loc.setXY(x_hat_now, y_hat_now) # luke removed
         #self.placeCells=zeros(ca1placeCells.shape)
         #self.placeCells[loc.placeId] = 1
         self.grids = loc.getGrids().copy()
@@ -303,9 +349,12 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
 
     #GPSnoise:use ONLY to simulate occasional lostness for TRAINING, not during inference
     #(might want to make noisy odom elsewhere for inference)
-    def makeNoisyCopy(self, b_GPSNoise=True):   #makes and returns a noisy copy
-        ec = ECState(self)
-
+#    def makeNoisyCopy(self, b_GPSNoise=True):   #makes and returns a noisy copy
+    # Luke
+    def makeNoisyCopy(self, dictGrids, b_GPSNoise=True):   #makes and returns a noisy copy    
+        # ec = ECState(self)
+        ec = ECState(self) # LB modifed to send dict grids!!!
+        
         p_flip = 0.2
         p_flip_odom = 0.2   #testing, make the grids,hds very unreliable (TODO iterative training??)
 
@@ -313,7 +362,9 @@ class ECState:           #just flattens grids, and adds lightAhead to the Senses
             if random.random()<p_flip_odom:    #simulate grid errors- fmove to a random place (as when lost)
                 #N_places = 13 # Luke arguments sent in at top!
                 i = random.randrange(0,self.N_places) # Luke converted to self 
-                loc = Location()
+#                loc = Location()
+                # luke added Nmax
+                loc = Location(dictGrids)                
                 loc.setPlaceId(i)
                 ec.grids = loc.getGrids().copy()
 
@@ -476,14 +527,14 @@ def smartCollapse(xs):
 
 #converts a single place cell vector into an x,y coordinate
 # Luke - This should be updated to recevie place cell inputs
-def placeCells2placeID(_pcs, n_mazeSize):
-    n_places = ((2*n_mazeSize)+1) **2 
-    pcs = _pcs.copy()
-    pcs=pcs[0:n_places]  #strip down to place cells only
-    T = pcs.shape[0]
-    grid = pcs.reshape(( ((2*n_mazeSize)+1),   ((2*n_mazeSize)+1) ))
-    (xy) = np.where(grid==1)  
-    return (xy[0][0], xy[1][0])   #return first (if several) matches
+#def placeCells2placeID(_pcs, n_mazeSize):
+#    n_places = ((2*n_mazeSize)+1) **2 
+#    pcs = _pcs.copy()
+#    pcs=pcs[0:n_places]  #strip down to place cells only
+#    T = pcs.shape[0]
+#    grid = pcs.reshape(( ((2*n_mazeSize)+1),   ((2*n_mazeSize)+1) ))
+#    (xy) = np.where(grid==1)  
+#    return (xy[0][0], xy[1][0])   #return first (if several) matches
 
 
 

@@ -8,15 +8,19 @@ Created on Fri Oct 03 12:12:43 2014
 
 #import urllib
 #import math
+#import Tkinter
+
 import numpy as np
 import sys
 #import filecmp
 # import cv2.cv as cv
 import cv2
+import re
 import os
 import glob
 from win32api import GetSystemMetrics
 from collections import Counter
+from collections import OrderedDict
 
 class maze_from_data:
     #Requires the folder name
@@ -28,6 +32,7 @@ class maze_from_data:
         self.window_name='Streetview'
         self.maze_map='Maze_Map'
         self.place_cell_map='Place_cell_Map'
+        self.text_display='Current_info'
         # Working out number of pixels to display maze etc
         self.image_display_width=0;
         self.image_display_height=0;
@@ -298,9 +303,61 @@ class maze_from_data:
                 image[:,:,current_color]=np.rot90(image[:,:,current_color],angles_90)
         return image
     
+#    def setup_text_display(self):
+#        self.root = Tkinter.Tk()
+#        self.text = Tkinter.Text(self.root)
+#        self.root.after(0,self.display_dict_data_for_current_img)  # reschedule event in 2 seconds
+#        self.root.mainloop()     
+#    
+#    def display_dict_data_for_current_img(self):
+#        self.text.insert(Tkinter.INSERT, "Hello.....")
+#        self.text.insert(Tkinter.END, "Bye Bye.....")   
+    def current_location_dict(self, x=0 ,y=0 , direction=0, location_count=0, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
+        current_location=(x,y,direction)
+        currentInfo=OrderedDict()        
+        currentInfo['Location']=str(current_location)
+        currentInfo['Step_count']=str(location_count)
+        currentInfo['Hd']=str(dictSenses[current_location].hd)        
+        currentInfo['Whiskers']=str(dictSenses[current_location].whiskers)
+        currentInfo['RGB']=str(dictSenses[current_location].rgb)        
+        currentInfo['Next']=str(dictNext[current_location])
+        currentInfo['Available']=str(dictAvailableActions[current_location])
+        currentInfo['Grids']=str(dictSenses[current_location].grids)        
+        currentInfo['Surfs']=str(dictSenses[current_location].surfs)        
+        #currentGrid=dictGrids[current_location]
+#        print(str(current_location))
+#        print(str(currentSenses_hd))
+#        print 'HOLDING'
+        return currentInfo
+        
+    def add_text_to_status(self, currentInfo):
+
+        def put_text_on_image(text,image_in,current_row,pixel_width):
+            textsize=cv2.getTextSize(text,cv2.FONT_HERSHEY_SIMPLEX,0.8,2)
+            # Word wrap text if needed....
+            text_lines=1
+            if textsize[0][0]>pixel_width:
+                text_lines=int(np.ceil(textsize[0][0]/pixel_width))
+            str_steps=int(np.floor(len(text)/text_lines))
+                
+            for current_line in range(0,text_lines):
+                end_point=(current_line+1)*str_steps
+                if end_point>len(text):
+                    end_point=len(text)
+                text_out=text[current_line*str_steps:end_point]
+                cv2.putText(image_in, text_out, (0+(textsize[0][1]/2),\
+                    int((textsize[0][1]*2*(current_row+current_line))+textsize[0][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.6,(0,0,0),1); 
+            return text_lines
+        # Blank image
+        text_image=np.zeros((self.pixel_width,self.pixel_width,3),dtype='u1')+255 # default black
+        text_count=0
+        for current_info in currentInfo:        
+            text_lines=put_text_on_image(current_info+': '+currentInfo[current_info],text_image,text_count,self.pixel_width)            
+            text_count+=text_lines
+        
+        cv2.imshow(self.text_display,text_image)
     
     ###### START OF MAIN
-        
     ########################################
     # Make database of image files
     #####################################
@@ -344,7 +401,7 @@ class maze_from_data:
 #                # Massive data image block!!!
 #                
 #        else: # Use original mode from HCLEARN - Charles FOX
-        import re
+        
         if os.path.exists(self.folder):
             for file in os.listdir(self.folder):
                 #print file
@@ -591,7 +648,18 @@ class maze_from_data:
         self.plot_current_position_on_map(self.location_x,self.location_y)
         cv2.waitKey(100)
         
-    def maze_interactive(self):
+    def maze_interactive(self, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
+        
+        
+        print '--- PRESS >>>>>'
+        print '--- ESC to exit'
+        print '--- i for dictionary of tile information'
+        print '--- w to move FORWARD'
+        print '--- s to move BACKWARD'
+        print '--- a to move LEFT'
+        print '--- d to move RIGHT'
+        # Show Dict / image info.....        
+        dict_flag=False                
         
         # get base x, y locations
         new_location_x=self.location_x
@@ -608,6 +676,13 @@ class maze_from_data:
             #        cv2.imwrite('/Users/chris/foo.png', gray_img)
             #        cv2.destroyAllWindows()
             #        break
+                elif k == 105: # i # LB -> This turns dictionary display on
+                    if dict_flag: # Turn dict display on
+                        dict_flag=False
+                        cv2.destroyWindow(self.text_display)
+                    else:
+                        dict_flag=True
+                        cv2.namedWindow(self.text_display)
                 elif k == ord('w'): # w=forwards
                     #image = image[::-1]
                     old_location_x=new_location_x
@@ -664,23 +739,40 @@ class maze_from_data:
                         resized_img=self.concatenate_resize_images(images_to_combine)
                         self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+                if dict_flag: 
+                    # Dict information
+                    current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, 0, dictSenses, dictGrids, dictNext, dictAvailableActions)
+                    self.add_text_to_status(current_info)        
         except KeyboardInterrupt:
             pass
     
     # Iterate around the maze either using random stepping or generated from paths.poslog    
-    def maze_walk(self, random=True, paths=0):
-        
+    def maze_walk(self, random=True, paths=0, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
+        #cv2.namedWindow(self.text_display)
+        if random:        
+            print 'Running in randomised mode...'
+        else:
+            print 'Using generated Paths...'
+            
+        print '--- PRESS >>>>>'
+        print '--- ESC to exit'
+        print '--- i for dictionary of tile information'
+        print '--- p to pause'
+        print '--- s to step'
+        # Show Dict / image info.....        
+        dict_flag=False        
+        time_delay=self.step_time_delay
         # Depending on mode
         if random:
             new_location_x=self.location_x
             new_location_y=self.location_y
-            
+            location_count=0 # start from as first location set...
             try:
                 ### Wait for key to update
                 while True:
                 # k = cv2.waitKey(0) & 0xFF
                 # Delay here for each cycle through the maze.....
-                    k=cv2.waitKey(self.step_time_delay) & 0xFF
+                    k=cv2.waitKey(time_delay) & 0xFF
                     # Depending on mode
                     #if random: # Generate random direction NESW
                     next_step=np.random.choice(np.array([0,1,2,3]))
@@ -692,6 +784,19 @@ class maze_from_data:
                 #        cv2.imwrite('/Users/chris/foo.png', gray_img)
                 #        cv2.destroyAllWindows()
                 #        break
+                    elif k == 105: # i # LB -> This turns dictionary display on
+                        if dict_flag: # Turn dict display on
+                            dict_flag=False
+                            cv2.destroyWindow(self.text_display)
+                        else:
+                            dict_flag=True
+                            cv2.namedWindow(self.text_display)
+                    elif k == 112: # p -> Pause
+                        if time_delay==0: # Turn pause mode off
+                            time_delay=self.step_time_delay
+                        else: # Turn pause mode on
+                            time_delay=0
+                    
                     elif next_step == 0: # w=forwards
                         #image = image[::-1]
                         old_location_x=new_location_x
@@ -748,6 +853,10 @@ class maze_from_data:
                             resized_img=self.concatenate_resize_images(images_to_combine)
                             self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                             #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+                    if dict_flag:                    # Dict information
+                        current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, location_count, dictSenses, dictGrids, dictNext, dictAvailableActions)
+                        self.add_text_to_status(current_info)
+                    location_count+=1
             except KeyboardInterrupt:
                 pass
 
@@ -775,17 +884,33 @@ class maze_from_data:
             
             # This needs to be sorted to allowing sending on values for the next location to move to....
             try:
+#                self.setup_text_display()                
+#                self.display_dict_data_for_current_img()
                 ### Wait for key to update
                 while True:
                 # k = cv2.waitKey(0) & 0xFF
                 # Delay here for each cycle through the maze.....
-                    k=cv2.waitKey(self.step_time_delay) & 0xFF
+                    k=cv2.waitKey(time_delay) & 0xFF
                     if location_count>=max_steps:                    
                         k=27
                     # Test for button press or location value
                     if k == 27: # ESC
                         cv2.destroyAllWindows()
                         break
+                    elif k ==105: # i turn dict mode on or off
+                        if dict_flag:
+                            dict_flag=False
+                            cv2.destroyWindow(self.text_display)
+                        else:
+                            dict_flag=True
+                            cv2.namedWindow(self.text_display)
+                    elif k == 112: # p -> Pause
+                        if time_delay==0: # Turn pause mode off
+                            time_delay=self.step_time_delay
+                        else: # Turn pause mode on
+                            time_delay=0
+                    elif k == 115: # s -> step
+                        time_delay=0 # Turn pause mode off
                     # Continue
                     #next_step=paths[location_count]
                     location_count+=1
@@ -803,6 +928,11 @@ class maze_from_data:
 #                        new_location_x -=self.direction_vector[0]
 #                        new_location_y -=self.direction_vector[1]
 #                    else:
+                    if dict_flag: 
+                        # Dict information
+                        current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, location_count, dictSenses, dictGrids, dictNext, dictAvailableActions)
+                        self.add_text_to_status(current_info)
+                    
                     resized_img=self.concatenate_resize_images(images_to_combine)
                     self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                     self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)

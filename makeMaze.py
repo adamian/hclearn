@@ -46,7 +46,11 @@ UTURN=4
 
 def findSurfs(x,y,ith,SURFdict):
     #Need a dictionary to convert directions as extractor makes a dictionary with NSEW and Senses uses a direction 0 1 2 or 3
+    
+    # LUKE - KEEPING THIS AS ORIGINAL This dict is different again!!!!!!
     directionDict = {0: 'E', 1: 'N', 2: 'W', 3: 'S'} 
+    # Luke adapated to    
+    #directionDict = {0: 'N', 1: 'E', 2: 'S', 3: 'W'} 
     #Convert direction
     direction = directionDict[ith]
     

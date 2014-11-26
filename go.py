@@ -46,7 +46,7 @@ else:
 
 #----- Configuration -------------
 N_mazeSize=3
-T=30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=300   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
@@ -54,12 +54,12 @@ tr_epochs=10
 # If true then it'll attempt to load the maze (corresponding to the same set of configurations) 
 # from a file. If the file doesn't exist, the algorithm will save the maze for future use.
 # Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
-pickle_maze = False # True
-imFolder = "DivisionCarver" #"divistion_street_1" #"DivisionCarver" #DCSCourtyard"
+pickle_maze = True # True
+imFolder = "DCSCourtyard" #"divistion_street_1" #"DivisionCarver" #DCSCourtyard"
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
 
-pickled_maze_name = "maze_SEED" + str(SEED) + "_N" + str(N_mazeSize) + "_DG" + str(int(b_useNewDG)) +  "_imdir" + imFolder + ".pickle"
+pickled_maze_name = "ORIGINAL_maze_SEED" + str(SEED) + "_N" + str(N_mazeSize) + "_DG" + str(int(b_useNewDG)) +  "_imdir" + imFolder + ".pickle"
 if pickle_maze and os.path.isfile(pickled_maze_name):
     saved_maze = pickle.load( open( pickled_maze_name, "rb" ) )
     dictSenses = saved_maze[0]
