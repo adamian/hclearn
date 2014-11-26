@@ -1,6 +1,6 @@
 from cffun import *
 #from makeMaze import Senses
-from makeMazeResizeable import Senses
+from makeMaze import Senses
 from location import Location
 from DGStateAlan import DGState, smartCollapse
 #Senses, makeMaze
