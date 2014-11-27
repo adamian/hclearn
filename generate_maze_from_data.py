@@ -18,7 +18,18 @@ import cv2
 import re
 import os
 import glob
-from win32api import GetSystemMetrics
+
+DEF_SCREEN_WIDTH=1600
+DEF_SCREEN_HEIGHT=900
+
+if sys.platform[0:5] == 'linux':
+    from PySide import QtGui
+    app = QtGui.QApplication(sys.argv)
+    screen_rect = app.desktop().screenGeometry()
+    DEF_SCREEN_WIDTH, DEF_SCREEN_HEIGHT = int(round(screen_rect.width()/2.,0)), int(round(screen_rect.height()/2.,0))
+else: 
+    from win32api import GetSystemMetrics
+
 from collections import Counter
 from collections import OrderedDict
 
@@ -566,12 +577,16 @@ class maze_from_data:
         self.location_y=self.place_cell_id[2,0]
         
         # Windows screen size
-        self.screen_width = GetSystemMetrics (0)
-        self.screen_height = GetSystemMetrics (1)
-        
+        try:
+            self.screen_width = GetSystemMetrics (0)
+            self.screen_height = GetSystemMetrics (1)
+        except:
+            self.screen_width = DEF_SCREEN_WIDTH
+            self.screen_height = DEF_SCREEN_HEIGHT
         # fit 3x images in window
         self.image_display_width=self.screen_width
         self.image_display_height=int(round(self.screen_width/3,0))
+
         
         ############################
         ######### Make arrow points (to show where to go....)
@@ -647,6 +662,9 @@ class maze_from_data:
         ### Put current location on map
         self.plot_current_position_on_map(self.location_x,self.location_y)
         cv2.waitKey(100)
+        if sys.platform[0:5] == 'linux':
+            print 'Press any key to continue...'
+            raw_input()
         
     def maze_interactive(self, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
         

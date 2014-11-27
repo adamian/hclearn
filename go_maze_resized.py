@@ -29,7 +29,7 @@ from collections import OrderedDict
 ##################################################
 # LB: I have reorganised this to bring all to top of code to make it easier to understand and adjust....
 #------------- Data input -> Maze -------------
-imFolder ="DCSCourtyard"  # Original: "DCSCourtyard" #"division_street_1" #"DivisionCarver"
+imFolder ="division_street_1"  # Original: "DCSCourtyard" #"division_street_1" #"DivisionCarver"
 
 #------------- Loading & Saving -------------
 pickle_maze = True  # Original: True
