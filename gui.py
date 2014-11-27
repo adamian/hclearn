@@ -73,7 +73,7 @@ def plotResults(path, hist, dictGrids, b_useNewDG, learningRate, note=""):
     return (b_losts, xys_bel)
 
 
-def plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, subTest = True, surfTest = True, placeTest=True, note=""):
+def plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, subTest = True, surfTest = True, placeTest=True, note="",resultsFolder="Results"):
     T=len(hist1.ecs)
 
     #gaussian posteriors for number of sense errors (np.std of belief in np.mean)
@@ -100,7 +100,7 @@ def plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, subTest =
         plt.yticks(np.arange(0,1, .2))
         ti = "Denoised vs input sensor discrepencies\nDG: %s learningRate: %f" % (surfTest, learningRate )
         plt.title(ti)
-        figName = "Results/err_senses_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
+        figName = resultsFolder+"/err_senses_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
        # COMMENTED AS RELATIVE PATHS HAVEN'T BEEN SORTED
        # plt.savefig(figName+".eps")
        # np.save(figName, np.vstack((np.array(means), np.array(sigmas))))
@@ -136,7 +136,7 @@ def plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, subTest =
         plt.yticks(np.arange(0,100, 10))
         ti = "Original surf vs denoised surf\nDG: %s learningRate: %f" % (surfTest, learningRate )
         plt.title(ti)
-        figName= "Results/err_surf_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
+        figName= resultsFolder+"/err_surf_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
         plt.savefig(figName + ".eps")
         np.save(figName, np.array(accuracies))
 
@@ -155,11 +155,11 @@ def plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, subTest =
         plt.yticks(np.arange(0,1.1, .1))
         ti = "Location error vs ground truth\nDG: %s learningRate: %f" % (surfTest, learningRate )
         plt.title(ti)
-        figName = "Results/err_places_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
+        figName = resultsFolder+"/err_places_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
         plt.savefig(figName + ".eps")
         np.save(figName, np.vstack((np.array(means), np.array(sigmas))))
 
-def plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, subTest = True, surfTest = True, placeTest=True, note=""):
+def plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, subTest = True, surfTest = True, placeTest=True, note="",resultsFolder="Results"):
     T=len(hist1.ecs)
 
     #gaussian posteriors for number of sense errors (np.std of belief in np.mean)
@@ -188,7 +188,7 @@ def plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learning
         plt.yticks(np.arange(0,1, .2))
         ti = "Denoised vs input sensor discrepencies\nDG: %s learningRate: %f" % (surfTest, learningRate )
         plt.title(ti)
-        figName = "Results/err_senses_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
+        figName = resultsFolder+"/err_senses_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
        # COMMENTED AS RELATIVE PATHS HAVEN'T BEEN SORTED
        # plt.savefig(figName+".eps")
        # np.save(figName, np.vstack((np.array(means), np.array(sigmas))))
@@ -229,7 +229,7 @@ def plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learning
         plt.yticks(np.arange(0,100, 10))
         ti = "Original surf vs denoised surf\nDG: %s learningRate: %f" % (surfTest, learningRate )
         plt.title(ti)
-        figName= "Results/err_surf_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
+        figName= resultsFolder+"/err_surf_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
         plt.savefig(figName + ".eps")
         np.save(figName, np.array(accuracies))
 
@@ -248,7 +248,7 @@ def plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learning
         plt.yticks(np.arange(0,1.1, .1))
         ti = "Location error vs ground truth\nDG: %s learningRate: %f" % (surfTest, learningRate )
         plt.title(ti)
-        figName = "Results/err_places_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
+        figName = resultsFolder+"/err_places_LR%d_DG%s_%s" % (learningRate*1000, surfTest, note)
         plt.savefig(figName + ".eps")
         np.save(figName, np.vstack((np.array(means), np.array(sigmas))))
 

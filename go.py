@@ -46,7 +46,7 @@ else:
 
 #----- Configuration -------------
 N_mazeSize=3
-T=3000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
@@ -55,7 +55,7 @@ tr_epochs=3
 # from a file. If the file doesn't exist, the algorithm will save the maze for future use.
 # Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
 pickle_maze = False # True
-imFolder = "DCSCourtyard" #"divistion_street_1" #"DivisionCarver" #DCSCourtyard"
+imFolder = "DivisionCarver" #"divistion_street_1" #"DivisionCarver" #DCSCourtyard"
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
 
@@ -153,7 +153,7 @@ if b_plot:
 #    savefig('out/run.eps')
  
     #plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
-    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote)
+    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote, resultsFolder="Results")
 
     ##figure()
     ##drawMaze()
@@ -210,6 +210,6 @@ if b_plot:
     (lost2,xys2) = plotResults(testPath, hist2, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost3,xys3) = plotResults(testPath, hist3, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost4,xys4) = plotResults(testPath, hist4, dictGrids, b_useNewDG, learningRate, note=anote)
-    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote)
+    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote,resultsFolder="ResultsTest")
     #plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
     show()
