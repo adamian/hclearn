@@ -22,23 +22,25 @@ class Paths:
         ### This looks to be the main path generator -> uses start_location and T (steps) 
         for t in range(0,T_max):
 
-            if start_location[0]==2*N_mazeSize and lightState==0: #E arm
-                lightState=1 
-                print "light to N"
-            if start_location[1]==2*N_mazeSize and lightState==1: #N arm
-                lightState=2
-                print "light to W"
-            if start_location[0]==0 and lightState==2: #W
-                lightState=3
-                print "light to S"
-            if start_location[1]==0 and lightState==3: #S
-                lightState=0 
-                print "light to E"
-            self.lightStateLog[t] = lightState
+            # if start_location[0]==2*N_mazeSize and lightState==0: #E arm
+            #     lightState=1 
+            #     print "light to N"
+            # if start_location[1]==2*N_mazeSize and lightState==1: #N arm
+            #     lightState=2
+            #     print "light to W"
+            # if start_location[0]==0 and lightState==2: #W
+            #     lightState=3
+            #     print "light to S"
+            # if start_location[1]==0 and lightState==3: #S
+            #     lightState=0 
+            #     print "light to E"
+            # #self.lightStateLog[t] = lightState
+            self.lightStateLog[t] = 0
 
 
             if start_location[2]==lightState:            #agent facing in same direction as the lit arm
-                self.lightAheadLog[t] = 1   #there is a visible light ahead
+                # self.lightAheadLog[t] = 1   #there is a visible light ahead
+                self.lightAheadLog[t] = 0
 
             self.posLog[t,0:3]=start_location
 
@@ -50,8 +52,8 @@ class Paths:
     def getGroundTruthFiring(self,dictSenses,dictGrids,N_mazeSize,t,dghelper=None):
 
          loc        = self.posLog[t,:]
-         lightState = self.lightStateLog[t,0]     #which physical light (eg 
-         lightAhead = self.lightAheadLog[t,0]
+         lightState = np.zeros(1,dtype='i1') #self.lightStateLog[t,0]     #which physical light (eg 
+         lightAhead = np.zeros(1,dtype='i1') #self.lightAheadLog[t,0]
          senses = dictSenses[tuple(loc)]    
          #HOOK include SURF features in dictSenses structure
          ecState = ECState((senses, lightAhead))
