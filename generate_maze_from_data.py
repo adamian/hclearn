@@ -15,7 +15,17 @@ import sys
 import cv2
 import os
 import glob
-from win32api import GetSystemMetrics
+DEF_SCREEN_WIDTH=1600
+DEF_SCREEN_HEIGHT=900
+
+if sys.platform[0:5] == 'linux':
+    from PySide import QtGui
+    app = QtGui.QApplication(sys.argv)
+    screen_rect = app.desktop().screenGeometry()
+    DEF_SCREEN_WIDTH, DEF_SCREEN_HEIGHT = int(round(screen_rect.width()/2.,0)), int(round(screen_rect.height()/2.,0))
+else:
+    from win32api import GetSystemMetrics
+
 from collections import Counter
 
 class maze_from_data:
@@ -509,8 +519,12 @@ class maze_from_data:
         self.location_y=self.place_cell_id[2,0]
         
         # Windows screen size
-        self.screen_width = GetSystemMetrics (0)
-        self.screen_height = GetSystemMetrics (1)
+        try:
+            self.screen_width = GetSystemMetrics (0)
+            self.screen_height = GetSystemMetrics (1)
+        except:
+            self.screen_width = DEF_SCREEN_WIDTH
+            self.screen_height = DEF_SCREEN_HEIGHT
         
         # fit 3x images in window
         self.image_display_width=self.screen_width
@@ -590,6 +604,9 @@ class maze_from_data:
         ### Put current location on map
         self.plot_current_position_on_map(self.location_x,self.location_y)
         cv2.waitKey(100)
+        if sys.platform[0:5] == 'linux':
+            print 'Press any key to continue...'
+            raw_input()
         
     def maze_interactive(self):
         
@@ -677,7 +694,8 @@ class maze_from_data:
             
             try:
                 ### Wait for key to update
-                while True:
+                #while True: # AD commented
+                while location_count < paths.shape[0]-1: # AD
                 # k = cv2.waitKey(0) & 0xFF
                 # Delay here for each cycle through the maze.....
                     k=cv2.waitKey(self.step_time_delay) & 0xFF
@@ -748,6 +766,7 @@ class maze_from_data:
                             resized_img=self.concatenate_resize_images(images_to_combine)
                             self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                             #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+                cv2.destroyAllWindows()
             except KeyboardInterrupt:
                 pass
 
@@ -776,9 +795,10 @@ class maze_from_data:
             # This needs to be sorted to allowing sending on values for the next location to move to....
             try:
                 ### Wait for key to update
-                while True:
-                # k = cv2.waitKey(0) & 0xFF
-                # Delay here for each cycle through the maze.....
+                #while True:
+                while location_count < paths.shape[0]-1: # AD
+                    # k = cv2.waitKey(0) & 0xFF
+                    # Delay here for each cycle through the maze.....
                     k=cv2.waitKey(self.step_time_delay) & 0xFF
                     if location_count>=max_steps:                    
                         k=27
@@ -806,7 +826,8 @@ class maze_from_data:
                     resized_img=self.concatenate_resize_images(images_to_combine)
                     self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                     self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                    self.plot_current_position_on_map(new_location_x,new_location_y)            
+                    self.plot_current_position_on_map(new_location_x,new_location_y)
+                cv2.destroyAllWindows()
             except KeyboardInterrupt:
                 pass            
         

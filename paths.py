@@ -19,6 +19,12 @@ class Paths:
         #s=[3,3,0]  # Luke send in argument this tile may not exist #state (of agent only).  start at center, facing towards east.
         lightState=0        #there are 4 lights which move when agent reaches NESW respectively
         
+        # Andreas:
+        # Uncomment the below to get the 'curiosity' mode
+        # exploredMaze = ExploreMaze(dictNext, T_maz, start_location,debug_log='LOG_exploreMaze.log')
+        # exploredMaze.walk()
+        # self.posLogExplore = exploredMaze.posLog.copy()
+
         ### This looks to be the main path generator -> uses start_location and T (steps) 
         for t in range(0,T_max):
 
