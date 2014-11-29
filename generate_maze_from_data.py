@@ -905,7 +905,8 @@ class maze_from_data:
 #                self.setup_text_display()                
 #                self.display_dict_data_for_current_img()
                 ### Wait for key to update
-                while True:
+                #while True: # AD commented
+                while location_count < paths.shape[0]-1: # AD
                 # k = cv2.waitKey(0) & 0xFF
                 # Delay here for each cycle through the maze.....
                     k=cv2.waitKey(time_delay) & 0xFF
@@ -954,7 +955,8 @@ class maze_from_data:
                     resized_img=self.concatenate_resize_images(images_to_combine)
                     self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                     self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                    self.plot_current_position_on_map(new_location_x,new_location_y)            
+                    self.plot_current_position_on_map(new_location_x,new_location_y)
+                cv2.destroyAllWindows()
             except KeyboardInterrupt:
                 pass            
         

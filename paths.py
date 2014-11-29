@@ -20,6 +20,12 @@ class Paths:
         #s=[3,3,0]  # Luke send in argument this tile may not exist #state (of agent only).  start at center, facing towards east.
         #lightState=0  # LB removed!      #there are 4 lights which move when agent reaches NESW respectively
         
+        # Andreas: 
+        # Uncomment the below to get the 'curiosity' mode
+        # exploredMaze = ExploreMaze(dictNext, T_maz, start_location,debug_log='LOG_exploreMaze.log')
+        # exploredMaze.walk()
+        # self.posLogExplore = exploredMaze.posLog.copy()
+
         ### This looks to be the main path generator -> uses start_location and T (steps) 
         for t in range(0,T_max):
 
@@ -47,10 +53,10 @@ class Paths:
 #==============================================================================
 
             self.posLog[t,0:3]=start_location
-
             s_nexts = dictNext[tuple(start_location)]          #possible next locations
             i = random.randrange(0,len(s_nexts))  #choose a random next location
             start_location = s_nexts[i]
+
 
 
     def getGroundTruthFiring(self,dictSenses,dictGrids,t,dghelper=None):
