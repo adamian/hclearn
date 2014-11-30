@@ -22,7 +22,7 @@ if sys.platform[0:5] == 'linux':
     from PySide import QtGui
     app = QtGui.QApplication(sys.argv)
     screen_rect = app.desktop().screenGeometry()
-    DEF_SCREEN_WIDTH, DEF_SCREEN_HEIGHT = int(round(screen_rect.width()/2.,0)), int(round(screen_rect.height()/2.,0))
+    DEF_SCREEN_WIDTH, DEF_SCREEN_HEIGHT = int(round(screen_rect.width()/3.,0)), int(round(screen_rect.height()/3.,0))
 else:
     from win32api import GetSystemMetrics
 

@@ -50,7 +50,7 @@ else:
 #----- Configuration -------------
 ## N_mazeSize=3 -> THIS NOW AUTOMATICALLY GENERATED!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-T=160   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=500   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
