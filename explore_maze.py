@@ -1,5 +1,4 @@
-import GPy
-from GPy.util.linalg import jitchol, tdot, dtrtrs, dpotri, pdinv
+from GPy.util.linalg import jitchol, pdinv
 import numpy as np
 from cffun import *
 import sys
@@ -33,12 +32,13 @@ class ExploreMaze:
             log_file = open(self.debug_log,'w+')
 
         # Linear kernel for building cov. functions
-        kernel = GPy.kern.Linear(allPos.shape[1]) + GPy.kern.White(allPos.shape[1])
+        #kernel = GPy.kern.Linear(allPos.shape[1]) + GPy.kern.White(allPos.shape[1])
         # Y doesn't matter! Can be anything...
-        m = GPy.models.GPRegression(X=allPos, Y=allPos, kernel=kernel)
+        #m = GPy.models.GPRegression(X=allPos, Y=allPos, kernel=kernel)
 
         # The full covariance matrix on all possible positions
-        SigmaC = m.kern.K(allPos,allPos)
+        #SigmaC = m.kern.K(allPos,allPos)
+        SigmaC = np.dot(allPos, allPos.T) + 0.0000000001*np.eye(allPos.shape[0])
 
         # All indices (indexing allPos or, equivalently, sigmaC)
         V = range(allPos.shape[0])
@@ -155,7 +155,7 @@ def approxConditionals(s, lhat, rest=None):
     try:
         inv_sAA = pdinv(sAA)[0]
     except:
-        inv_sAA = pdinv(sAA + 0.0001*np.eye(sAA.shape[0],sAA.shape[1]))[0]
+        inv_sAA = pdinv(sAA + 0.00000001*np.eye(sAA.shape[0],sAA.shape[1]))[0]
         print "Warning: Added more jitter!"
     sc = sliceArr(s,[lhat],A)
     sInvs = np.dot(np.dot(sc,inv_sAA),sc.T)
