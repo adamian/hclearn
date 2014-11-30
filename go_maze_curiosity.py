@@ -53,7 +53,7 @@ plot_paths = True  # Original: False
 #------------- Model Configuration -------------
 #@@@@@@@@@@@@@ Learning @@@@@@@@@@@
 ## Number of learning steps around the maze...
-T=40   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=150   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 ## Run new dentate gyrus code
 b_useNewDG = True  # Original: True
 ## Set overall learning rate
@@ -113,7 +113,7 @@ fullImageFolder = rootFolder + imFolder + "/"
 
 # LB: N_mazeSize as Nmax in dictGrids    
 
-pickled_maze_name = "maze_SEED" + str(SEED) + "_DG" + str(int(b_useNewDG)) +  "_imdir" + imFolder + ".pickle"
+pickled_maze_name = "r_maze_SEED" + str(SEED) + "_DG" + str(int(b_useNewDG)) +  "_imdir" + imFolder + ".pickle"
 if pickle_maze and os.path.isfile(pickled_maze_name):
     saved_maze = pickle.load( open( pickled_maze_name, "rb" ) )
     dictSenses = saved_maze[0]
