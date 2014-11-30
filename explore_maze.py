@@ -14,7 +14,7 @@ class ExploreMaze:
 
         self.posLog = np.zeros((T_max, 3),dtype='int16')  #for training, ground truth states. Includes lightState
         # All possible positions on the maze
-        self.allPos = np.array(dictNext.keys())
+        self.allPos = np.array(dictNext.keys())#, dtype='float64')
         # Match all possible positions with their row index in allPos
         self.dictIndex = {}
         for j in range(self.allPos.shape[0]):
@@ -24,8 +24,11 @@ class ExploreMaze:
         dictNext = self.dictNext
         T_max = self.T_max
         start_location = self.start_location
-        allPos = self.allPos
+        allPos = self.allPos.copy()
         dictIndex = self.dictIndex
+        
+        #### TODO: Give more "priority" to the location, rather than the heading.
+        allPosCov = allPos.copy()
 
         log_file = None
         if self.debug_log == 'stdout':
@@ -40,7 +43,9 @@ class ExploreMaze:
 
         # The full covariance matrix on all possible positions
         #SigmaC = m.kern.K(allPos,allPos)
-        SigmaC = np.dot(allPos, allPos.T) + 0.0000000001*np.eye(allPos.shape[0])
+        
+        #import pdb; pdb.set_trace()
+        SigmaC = np.dot(allPosCov, allPosCov.T) + 0.0000000001*np.eye(allPosCov.shape[0])
 
         # All indices (indexing allPos or, equivalently, sigmaC)
         V = range(allPos.shape[0])
@@ -68,22 +73,22 @@ class ExploreMaze:
                     Delta[j] = -np.inf
                     continue
                 else:
-                    if log_file is not None:
-                        print >> log_file,  "\t # Examining: " + str(p) + " : ", 
-                        print >> log_file,  str(allPos[p])
-                        print >> log_file,  ""
                     not_CiUp = list(set(notCi) - set([p])) # Does not contain p
                     Sigma_a = approxConditionals(SigmaC, p, Ci);
                     Delta[j] = Sigma_a
-
+                    if log_file is not None:
+                        print >> log_file,  "\t # Examined: " + str(p) + " : ", 
+                        print >> log_file,  str(allPos[p]),
+                        print >> log_file, " Delta: " + str(Sigma_a)
+                        print >> log_file,  ""
             # None of the unexplored locations is valid in s_nexts. Choose randomly.
             # TODO: Bias towards same direction.
             if np.isinf(Delta).all():
                 # If choose randomly, at least preserve heading
                 tmpList = []
-                for jn in range(len(s_nexts)):
-                    if s_nexts[jn][2] == cur_loc[2]:
-                        tmpList.append(s_nexts[jn])
+                #for jn in range(len(s_nexts)):
+                #    if s_nexts[jn][2] == cur_loc[2]:
+                #        tmpList.append(s_nexts[jn])
                 # If no available choices can preserve heading (ie we're seeing a wall), just 
                 # choose whatever available at random (same if it's just the trivial stay state)
                 if tmpList == []:

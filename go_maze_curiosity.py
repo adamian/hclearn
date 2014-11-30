@@ -53,7 +53,7 @@ plot_paths = True  # Original: False
 #------------- Model Configuration -------------
 #@@@@@@@@@@@@@ Learning @@@@@@@@@@@
 ## Number of learning steps around the maze...
-T=150   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=500   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 ## Run new dentate gyrus code
 b_useNewDG = True  # Original: True
 ## Set overall learning rate
