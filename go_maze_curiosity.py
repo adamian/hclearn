@@ -144,11 +144,26 @@ else:
 #start_location=[3,3,0] # Original setting in paths.py
 start_location=np.asarray(dictSenses.keys()[0])
 
-e = ExploreMaze(dictNext, T, start_location,debug_log='deleteme.log')
-e.walk()
+# Curiosity exploration with bi-directional paths, ie if we're in location loc.=[x y h] then we observe
+# automatically all [x y h'] for all possible h'. Momentum says how biased to be for preserving heading if
+# we end up in a situation where all neighbours are already visited (0 - 1)
+e2 = ExploreMaze(dictNext, T, start_location,debug_log='deleteme2.log',momentum=0.5)
+e2.walk_bidirect()
+
+# Curiosity exploration without bi-directional paths.
+#e = ExploreMaze(dictNext, T, start_location,debug_log='deleteme.log')
+#e.walk()
+
 
 path_config = Paths(dictNext,dictGrids.Nmax, T, start_location)          #a random walk through the maze -- a list of world states (not percepts)
-displayPaths(fullImageFolder, path_config.posLog, dictSenses, dictGrids, dictNext, dictAvailableActions)
+# Without doing anything, path_config.posLog will have the random walk. Visualise it if you want.
+#displayPaths(fullImageFolder, path_config.posLog, dictSenses, dictGrids, dictNext, dictAvailableActions)
 
-path_config.posLog = e.posLog.copy()
+# Visualise the non-bidirect curiosity path
+#path_config.posLog = e.posLog.copy()
+
+# Visualise the non-bidirect curiosity path
+path_config.posLog = e2.posLog.copy()
+
+# Do visualisation
 displayPaths(fullImageFolder, path_config.posLog, dictSenses, dictGrids, dictNext, dictAvailableActions)
