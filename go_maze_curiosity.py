@@ -103,14 +103,18 @@ start_location=np.asarray(dictSenses.keys()[0])
 e = ExploreMaze(dictNext, T, start_location,debug_log='deleteme.log')
 e.walk()
 
+e2 = ExploreMaze(dictNext, T, start_location,debug_log='deleteme2.log', momentum=0.5)
+e2.walk_bidirect()
+
 ###### N_mazesize generated!!!
 path_config = Paths(dictNext,N_mazeSize, T, start_location)          #a random walk through the maze -- a list of world states (not percepts)
 displayPaths(fullImageFolder, path_config.posLog)
 
-
 path_config.posLog = e.posLog.copy()
 displayPaths(fullImageFolder, path_config.posLog)
 
+path_config.posLog = e2.posLog.copy()
+displayPaths(fullImageFolder, path_config.posLog)
 
 
 
