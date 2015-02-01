@@ -41,9 +41,15 @@ def makeMAPPredictions(path,dictGrids, dictSenses, WB, WR, WS, WO, dghelper, b_o
 
     for t in range(1,T): 
         if b_useGroundTruthGrids:
-            ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=True) 
+            # Luke commented            
+            #ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=True)
+            # Luke added
+            ec = ecs_gnd[t].makeNoisyCopy(dictGrids,b_GPSNoise=True)
         else:
-            ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=False) #add observation noise (inc. noisy GPS, which may be overriden by odometry)        
+            # Luke commented 
+            #ec = ecs_gnd[t].makeNoisyCopy(b_GPSNoise=False) #add observation noise (inc. noisy GPS, which may be overriden by odometry)        
+            # Luke added
+            ec = ecs_gnd[t].makeNoisyCopy(dictGrids,b_GPSNoise=False) #add observation noise (inc. noisy GPS, which may be overriden by odometry)                    
             ec.hd = []        #kill old values to prevent any bugs creeping in!
             ec.placeCells=[]
             b_odom = sum(path.posLog[t,0:2] != path.posLog[t-1  ,0:2])>0    #have I moved?
@@ -235,8 +241,10 @@ def makeMAPPredictionsStep(dictGrids, ec, ca3, ca3_PREV_gnd, sub_int, WB, WR, WS
     #print("p_odom: %s" % p_odom)
     #print("p_senses: %s" % p_senses)
     #ALAN - The last sense is "whiskers left and right on" this is almost always on, thus in the CA1State can be decoded to mean "whiskers left and right on"
-
-    ca1 = CA1State(p_odom, p_senses, dghelper, N_places)   #N_places added by luke           #lots of smart decoding done in here
+    # Luke commented
+    #    ca1 = CA1State(p_odom, p_senses, dghelper, N_places)   #N_places added by luke           #lots of smart decoding done in here
+    # Luke added
+    ca1 = CA1State(dictGrids, p_odom, p_senses, dghelper, N_places)   #N_places added by luke           #lots of smart decoding done in here
     
     #HOOK-ALAN set weights for each error in the subiculum so they add up to one (so surfs don't count much more towards the final error than the others)
     whiskersWeighted = np.sum(ca1.whiskers!=ec.whiskers)/float(len(ca1.whiskers))

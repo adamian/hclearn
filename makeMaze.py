@@ -1,6 +1,7 @@
 import numpy as np
 from SURFExtractor import makeSURFRepresentation
-from location import Location
+#from location import Location
+from locationLuke import Location
 
 printMessages = False
 
@@ -11,7 +12,7 @@ class Senses:
         
 
         #self.placeCells = np.zeros((1+4*N_mazeSize))
-        loc=Location()
+        loc=Location() # Luke this wont work anymore....
         loc.setXY(x,y)
         #placeId = loc.placeId
         #self.placeCells[placeId] = 1   
@@ -76,7 +77,7 @@ def findSurfs(x,y,ith,SURFdict):
         #raise NameError("There isn't a surf feature description for: %s" % (key,))
 
 #n = number of locations per arm (so that (n,n) is the center point)
-def makeMaze(n, b_useNewDG=False, prefixFolder = None):
+def makeMaze(n, b_useNewDG=False, prefixFolder = None, use_lights_and_colours = True):
     surfDict=None
     if b_useNewDG:
         print("Generating SURF representations...")
@@ -98,6 +99,11 @@ def makeMaze(n, b_useNewDG=False, prefixFolder = None):
         x=y=n             #start at center -- add its data first, then walk outwards.    
         stateCenter = (x,y,ith)
         senses = Senses(n,x,y,ith,surfDict)
+        
+        # Switch off lights and coliurs if false
+        if not use_lights_and_colours:
+            senses.rgb=np.array([0,0,0])
+        
         dictSenses[stateCenter] = senses
         dictAvailableActions[stateCenter] = [STAY,FWD,LEFT,RIGHT]
         dictNext[stateCenter] = [(x,y,ith), (x+step_xs[ith],y+step_ys[ith],ith), (x,y,ith_l), (x,y,ith_r)] 

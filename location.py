@@ -25,8 +25,6 @@ default_Nmax=3
 def gComponent(x, i):
     return (  np.mod(x,2**(i+1)) < 2**i )
 
-
-
 class DictGrids:
     def __init__(self, Nmax=default_Nmax):
         self.Nmax=int(Nmax)
@@ -52,8 +50,11 @@ class DictGrids:
 
 
 def getGrids(x,y, Nmax=default_Nmax):
-    assert(x <= (Nmax*2)+1)
-    assert(y <= (Nmax*2)+1)
+    #assert(x <= (Nmax*2)+1)
+    #assert(y <= (Nmax*2)+1)
+    
+    assert(x <= (2**Nmax)-1) # incorrect LB, Nmax**2
+    assert(y <= (2**Nmax)-1) # incorrect LB
     #Nmax = 3
     grids = np.zeros((2,Nmax))
     for i in range(0,Nmax):   #TODO should test this more, maybe a source of bugs?
@@ -71,9 +72,11 @@ def getGrids(x,y, Nmax=default_Nmax):
 # Continue edits from here and below...
 
 class Location:
-    def __init__(self, Nmax=default_Nmax):
+    # Luke Commented def __init__(self, Nmax=default_Nmax):
+    def __init__(self,dictGrids):
         foo=0
-        self.Nmax=Nmax
+        self.Nmax=dictGrids.Nmax
+        self.grid2place_index=dictGrids.grid2place_index # Luke mapping of grid cells to places -> unfixed like original code..
 
     # TODO for resizable
     def setPlaceId(self, placeId):
@@ -82,22 +85,36 @@ class Location:
             print "ERROR, tried to set placeId outside maze!"
     
     # TODO for resizable
+# Luke commented    def setXY(self, x, y):
     def setXY(self, x, y):
-        if x==3 and y==3:
-            self.placeId=0
-        elif y==3 and x>3:
-            self.placeId = 0 + (x-3)
-        elif x==3 and y>3:
-            self.placeId = 3 + (y-3)
-        elif y==3 and x<3:
-            self.placeId = 6 + (3-x)
-        elif x==3 and y<3:
-            self.placeId = 9 + (3-y)
-        else:
-            print "ERROR, tried to set XY outside maze!"
-        
+            ### Luke new version
+#==============================================================================
+        self.placeId=None        
+        for current_place in range(0,len(self.grid2place_index)):
+            if self.grid2place_index['x'][current_place]==x and self.grid2place_index['y'][current_place]==y: 
+                self.placeId=self.grid2place_index['place'][current_place]
+                break
+        if self.placeId==None:
+            print('ERROR could not find placeId for x:',str(x), ' y:', str(y))
+#==============================================================================        
+#
+#        if x==3 and y==3:
+#            self.placeId=0
+#        elif y==3 and x>3:
+#            self.placeId = 0 + (x-3)
+#        elif x==3 and y>3:
+#            self.placeId = 3 + (y-3)
+#        elif y==3 and x<3:
+#            self.placeId = 6 + (3-x)
+#        elif x==3 and y<3:
+#            self.placeId = 9 + (3-y)
+#        else:
+#            print "ERROR, tried to set XY outside maze!"
     def setGrids(self, grids, dictGrids):
         (x,y) = dictGrids.lookup(grids)
+        # Luke commnted        
+        #self.setXY(x,y)
+        # Luke modified
         self.setXY(x,y)
 # LUKE COMMENTED OUT HERE AS REPEATED
 #    def getGrids(self):
@@ -106,19 +123,29 @@ class Location:
 
     # TODO for resizable # LUKE -> will send in direct place cell rather than assigning by location 
     def getXY(self):
-        if self.placeId > 9:
-            d = (self.placeId-9)* np.array([0, -1])
-        elif self.placeId > 6:
-            d = (self.placeId-6)* np.array([-1,  0])
-        elif self.placeId > 3:
-            d = (self.placeId-3)* np.array([0, 1])
-        elif self.placeId > 0:
-            d = (self.placeId-0)* np.array([1, 0])
-        else:
-            d = np.array([0,0])
-        center = np.array([3,3])
+        
+        
+        t=1        
+#==============================================================================
+        xy[0]=self.dictGrids.grid2place_index['x'][np.where(self.dictGrids.grid2place_index['place']==self.placeId)]
+        xy[1]=self.dictGrids.grid2place_index['y'][np.where(self.dictGrids.grid2place_index['place']==self.placeId)]
+#===============        
+        
+# Luke comented        
+#        if self.placeId > 9:
+#            d = (self.placeId-9)* np.array([0, -1])
+#        elif self.placeId > 6:
+#            d = (self.placeId-6)* np.array([-1,  0])
+#        elif self.placeId > 3:
+#            d = (self.placeId-3)* np.array([0, 1])
+#        elif self.placeId > 0:
+#            d = (self.placeId-0)* np.array([1, 0])
+#        else:
+#            d = np.array([0,0])
+#        center = np.array([3,3])
+#        return center+d
         return center+d
-
+# Luke COMMENTED OUT!!!!
     # TODO for resizable
     def getGrids(self):
 
@@ -140,10 +167,4 @@ class Location:
         return grids
 
 
-    
-
-
-                 
-  
-
-dictGrids = DictGrids()
+#dictGrids = DictGrids() # Luke dont want autogeneration dangerous!!!!!!

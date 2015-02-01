@@ -4,8 +4,11 @@ import matplotlib.pyplot as plt
 import unittest
 import numpy as np
 import random
-from location import Location
 
+# Luke Modification
+#from location import Location
+# Luke added
+from locationLuke import Location
 
 #Use a seed so results are consistent
 SEED=2942875  #95731  #73765
@@ -207,7 +210,12 @@ class DGHelper:
 
 class DGState:
     def __init__(self,  ec, dictGrids, dghelper=None, N_place_cells=13):
+        
         self.N_place_cells=N_place_cells
+        ## Luke modification
+        if hasattr(dictGrids,"placeCellCount"):       
+            self.N_place_cells=dictGrids.placeCellCount            
+        
         self.dghelper = dghelper
         #HOOK:, needs to use EC data to define "combis" of features aswell
 
@@ -251,8 +259,14 @@ class DGState:
             #self.N_place_cells = 13
             # N_hd = 4       
 
-            loc=Location()       #NEW, pure place cells in DG
-            loc.setGrids(ec.grids, dictGrids)
+            # loc=Location()       #NEW, pure place cells in DG
+            # Luke modified
+            loc = Location(dictGrids)
+            # Luke modified
+            # loc.setGrids(ec.grids, dictGrids)
+            # Luke added
+            loc.setGrids(ec.grids) # Luke Jan 2015 -> ec.grids is wrong!
+            
             self.place=np.zeros(self.N_place_cells)
             self.place[loc.placeId] = 1
 

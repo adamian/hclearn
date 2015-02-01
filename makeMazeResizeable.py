@@ -1,9 +1,9 @@
 import numpy as np
 from SURFExtractor_LUKE import makeSURFRepresentation
 #from SURFExtractor import TestComparisons
-#from location import Location
-from locationLuke import Location
-from generate_maze_from_data import maze_from_data
+#from location import *
+from locationLuke import * # Luke modified
+from generate_maze_from_data import maze_from_data 
 printMessages = False
 
 # Luke Boorman November 2014 -> ADAPTED TO MOVE AWAY FROM FIXED OUTPUT PLUS MAZE!!!!!!
@@ -56,7 +56,7 @@ RIGHT=3
 UTURN=4
 
 def findSurfs(x,y,direction,SURFdict):
-    # LB: THIS SHOULD TSYA THE SAME!!!!!
+    # LB: THIS SHOULD Stay THE SAME!!!!!
     # OLD Need a dictionary to convert directions as extractor makes a dictionary wdirection NSEW and Senses uses a direction 0 1 2 or 3
     # OLD directionDict = {0: 'E', 1: 'N', 2: 'W', 3: 'S'}
     #  Changed
@@ -104,6 +104,7 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
     
     # Run SURF features....
     surfDict=None
+    #surfDict = makeSURFRepresentation(prefixFolder,True)    
     surfDict = makeSURFRepresentation(prefixFolder,False)     
     print('SURF Completed')
     
@@ -111,14 +112,27 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
     dictSenses=dict()
     dictAvailableActions=dict()
     dictNext=dict()
-    dictPlaceCells=dict()
+    dictPlaceCells=dict() # LUKE removed
     # Calculate NMax as grid cell encoding...
     # Setup as a 2xn grid, therfore need to encode for complete grid sapce, ie if x=4,y=5 grid x*y=20
     # Max size of peak2peak of x and y, log2 and maximum size.....     
     Nmax=int(np.ceil(np.log2(np.amax([maze_data.place_cell_id[1].ptp(),maze_data.place_cell_id[2].ptp()]))))   
-    # Setup location class with nMax    
-    loc=Location(Nmax)
     
+#==============================================================================
+    # Luke REMOVED
+     # Loop through all locations.... N,E,S,W    
+    for current_id in range(0,maze_data.place_cell_id[0,:].size):
+        # maze_data.find_next_set_images(0,26,1)
+        current_x=maze_data.place_cell_id[1,current_id]
+        current_y=maze_data.place_cell_id[2,current_id]
+        # Save index of place cells (Place_cell_id / x / y)
+        dictPlaceCells[(current_x,current_y)]=maze_data.place_cell_id[0,current_id]
+    
+    dictGrids = DictGrids(dictPlaceCells,Nmax)     
+#==============================================================================
+   # dictGrids = DictGrids(place_cell_count,Nmax)    # New version
+    # Setup location class with nMax    
+    loc=Location(dictGrids)
     # Step for each move around Maze
     maze_step_size=1    
     
@@ -138,9 +152,9 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
         current_x=maze_data.place_cell_id[1,current_id]
         current_y=maze_data.place_cell_id[2,current_id]
         # Save index of place cells (Place_cell_id / x / y)
-        dictPlaceCells[(current_x,current_y)]=maze_data.place_cell_id[0,current_id]
+        # dictPlaceCells[(current_x,current_y)]=maze_data.place_cell_id[0,current_id]
     
-        print('Place cell ID:',str(current_id),' x:',str(current_x),' y:',str(current_y))
+        #print('Place cell ID:',str(current_id),' x:',str(current_x),' y:',str(current_y))
         ## Fn find_next_set_images
         ## returns: (images_to_combine,image_found,heading,direction_vector,picture_name,available_direction_vector)
         ## available_direction_vector = [forwards, backwards, left, right]
@@ -158,19 +172,21 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
             if image_found:
                 # Sense dictionary
                 dictSenses[current_location]=Senses()
-                dictSenses[current_location].hd[current_direction]=1 # REVERSE and REMOVE BACKWARDS            
+                dictSenses[current_location].hd[current_direction]=1 # Head direction            
                 dictSenses[current_location].whiskers=np.square(available_direction_vector[[2,0,3]]-1) # LEFT / FORWARDS / RIGHT
                 dictSenses[current_location].rgb=np.array([0,0,0]) # Not set at the moment
                 try:
                     dictSenses[current_location].surfs=findSurfs(current_x,current_y,current_direction,surfDict)
                 except:
                     pass
-                ##dictSenses[current_location].grids=1#SORT GRIDS   
-                # loc.setXY(current_x,current_y) # Luke -> Old approach
+                ##dictSenses[current_location].grids=1#SORT GRIDS
+                # Set place cell ID    
+                loc.setXY(current_x,current_y) # Luke -> Old approach
                 # Use index of place cells instead
-                loc.setPlaceId(dictPlaceCells[(current_x,current_y)])
+                # Luke removed
+                #loc.setPlaceId(dictPlaceCells[(current_x,current_y)])
                 # dictSenses[current_location].grids = loc.getGrids().copy() # Luke -> old approach
-                dictSenses[current_location].grids = loc.getGrids(current_x, current_y).copy()
+                dictSenses[current_location].grids = loc.getGrids().copy()
                         
                 # Which ways can you go....
                 # Take from available action vector [FWD=1, REVERSE(UTURN)=4, LEFT=2, RIGHT=3]
@@ -292,25 +308,14 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
 
     #print("dictSenses\n%s\ndictAvailableActions\n%s\ndictNext\n%s\nThere are %d images\n" % (dictSenses.keys(), dictAvailableActions,dictNext, len(dictSenses.keys())))
     #print("\n\ndictSenses:\n%s" % dictSenses)
-    return [dictSenses, dictAvailableActions, dictNext, Nmax, dictPlaceCells]
+#    return [dictSenses, dictAvailableActions, dictNext, Nmax, dictGrids]
+    return [dictSenses, dictAvailableActions, dictNext, dictGrids] # LB: modified
 
 #No longer needed, sorted it out by passing it from go to hcq..
 #[dictSenses, dictAvailableActions, dictNext] = makeMaze(3)
 
 # Loads and plots the maze as a graphic + map of place cell id's and + map of current position
-def displayMaze(prefixFolder = None):
-    # Set up maze data loader
-    maze_data=maze_from_data(prefixFolder)
-    # Load data from folder     
-    maze_data.index_image_files()
-    # Display maze - TESTING
-    maze_data.display_maps_images()
-    ### User interative mode -> Use keys Exit:'ESC' FD:W BK:A LEFT:S RIGHT:D
-    maze_data.maze_interactive()
-    #maze_data.maze_walk()
-
-    
-def displayPaths(prefixFolder = None, paths=None):
+def displayMaze(prefixFolder = None, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
     # Set up maze data loader
     maze_data=maze_from_data(prefixFolder)
     # Load data from folder     
@@ -319,9 +324,25 @@ def displayPaths(prefixFolder = None, paths=None):
     maze_data.display_maps_images()
     ### User interative mode -> Use keys Exit:'ESC' FD:W BK:A LEFT:S RIGHT:D
     #maze_data.maze_interactive()
+    maze_data.maze_interactive(dictSenses, dictGrids, dictNext, dictAvailableActions)
+    #maze_data.maze_walk()
+
+    
+def displayPaths(prefixFolder = None, paths=None, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
+    # Set up maze data loader
+    maze_data=maze_from_data(prefixFolder)
+    # Load data from folder     
+    maze_data.index_image_files()
+    
+#    current_info=maze_data.current_location_dict(0 ,0 , 0, 0, dictSenses, dictGrids, dictNext, dictAvailableActions)
+#    maze_data.add_text_to_status(current_info)    
+    # Display maze - TESTING
+    maze_data.display_maps_images()
+    ### User interative mode -> Use keys Exit:'ESC' FD:W BK:A LEFT:S RIGHT:D
+    #maze_data.maze_interactive()
     #maze_data.maze_walk()
     # Run interactive mode but iterate around the locations    
-    maze_data.maze_walk(False,paths)
+    maze_data.maze_walk(False,paths, dictSenses, dictGrids, dictNext, dictAvailableActions)
     
     
     

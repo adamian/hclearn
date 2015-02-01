@@ -4,9 +4,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from hcq import *
 from gui import *
-from location import *
+# Luke commented
+#from location import *
+# Luke Mod
+from locationLuke import *
+
 from paths import * #CHANGED AS IPYTHON DOESN'T LIKE FILES/DIRS CALLED PATH
-from makeMaze import makeMaze
+# Luke commentedfrom makeMaze import makeMaze
+#### Luke mod
+import makeMazeResizeable # Luke Altered to add new functions for displaying mze
+
+
 from os import sys
 import learnWeights
 import sys
@@ -46,16 +54,23 @@ else:
 
 #----- Configuration -------------
 N_mazeSize=3
-T=30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=30000 #30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
-tr_epochs=3
+tr_epochs=5 #10
+
+# Luke added to switch off lights and colour inputs to model
+use_lights_and_colours=False # true = on, false=off
+
+# --------- "Test" phase (new path, but reuse training weights etc)
+T_test = 3000 #3000 # Was 3000 Should be 100
+
 # If true then it'll attempt to load the maze (corresponding to the same set of configurations) 
 # from a file. If the file doesn't exist, the algorithm will save the maze for future use.
 # Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
-pickle_maze = False # True
-imFolder = "DivisionCarver" #"divistion_street_1" #"DivisionCarver" #DCSCourtyard"
+pickle_maze = True # True
+imFolder = "DCSCourtyard" #"DCSCourtyard" #"division_street_1" #"DivisionCarver" #DCSCourtyard"
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
 
@@ -65,16 +80,30 @@ if pickle_maze and os.path.isfile(pickled_maze_name):
     dictSenses = saved_maze[0]
     dictAvailableActions = saved_maze[1]
     dictNext = saved_maze[2]
+    # Luke added
+    dictGrids=saved_maze[3]
     print "# Found and loaded pickled maze!"
 else:
-    [dictSenses, dictAvailableActions, dictNext] = makeMaze(N_mazeSize, b_useNewDG, prefixFolder=fullImageFolder)     #make maze, including ideal percepts at each place
+    # Luke commented out
+    #[dictSenses, dictAvailableActions, dictNext] = makeMaze(N_mazeSize, b_useNewDG, prefixFolder=fullImageFolder, use_lights_and_colours=use_lights_and_colours)     #make maze, including ideal percepts at each place
+    ### Luke test mod...    
+    [dictSenses, dictAvailableActions, dictNext, dictGrids] = makeMazeResizeable.makeMaze(b_useNewDG, prefixFolder=fullImageFolder)  #make maze, including ideal percepts at each place
+
+    
     if pickle_maze:
-        saved_maze = [dictSenses, dictAvailableActions, dictNext]
+        # Luke added
+        saved_maze = [dictSenses, dictAvailableActions, dictNext, dictGrids]
+        # saved_maze = [dictSenses, dictAvailableActions, dictNext]        
         pickle.dump( saved_maze, open( pickled_maze_name, "wb" ) )
 
 # DictGrids is from location.py. Sets up a dictionary of grid cell locations from XY locations (I think!)
-dictGrids = DictGrids()
-path = Paths(dictNext,N_mazeSize, T)          #a random walk through the maze -- a list of world states (not percepts)
+
+## Luke disabled....
+#dictGrids = DictGrids()
+# Luke added 
+start_location=np.asarray(dictSenses.keys()[0])
+
+path = Paths(dictNext,N_mazeSize, T, start_location, use_lights_and_colours=use_lights_and_colours)          #a random walk through the maze -- a list of world states (not percepts)
 
 (ecs_gnd, dgs_gnd, ca3s_gnd) = path.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path, for plotting only
 
@@ -98,10 +127,10 @@ WB_ideal = np.load('WB.npy')
 
 # This is not really random, but it's equivalent. Indeed, the results with the next chunk (true random) are equivalent
 # possibly because random weights result in mean predictions (same as zero weights)
-WR_rand0 = 0+ 0*np.random.random(WR_ideal.shape)
-WB_rand0 = 0+ 0*np.random.random(WB_ideal.shape)
-WO_rand0 = 0+ 0*np.random.random(WO_ideal.shape)
-WS_rand0 = 0+ 0*np.random.random(WS_ideal.shape)
+#WR_rand0 = 0+ 0*np.random.random(WR_ideal.shape)
+#WB_rand0 = 0+ 0*np.random.random(WB_ideal.shape)
+#WO_rand0 = 0+ 0*np.random.random(WO_ideal.shape)
+#WS_rand0 = 0+ 0*np.random.random(WS_ideal.shape)
 
 WR_rand = np.random.random(WR_ideal.shape)
 WB_rand = np.random.random(WB_ideal.shape)
@@ -130,8 +159,8 @@ if b_inference:
     random.seed(SEED) ;  np.random.seed(SEED)
     hist3 = makeMAPPredictions(path,dictGrids, dictSenses, WB_ideal, WR_ideal, WS_ideal, WO_ideal, dghelper, b_obsOnly=b_obsOnly,  b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids, b_useSub=b_useSub, str_title="Handset", b_learn=b_learn)
 
-    random.seed(SEED) ;  np.random.seed(SEED)
-    hist4   = makeMAPPredictions(path,dictGrids, dictSenses, WB_rand0,  WR_rand0,  WS_rand0, WO_rand0, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Random0", b_learn=b_learn)
+#    random.seed(SEED) ;  np.random.seed(SEED)
+#    hist4   = makeMAPPredictions(path,dictGrids, dictSenses, WB_rand0,  WR_rand0,  WS_rand0, WO_rand0, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Random0", b_learn=b_learn)
 
 
 print "DONE"
@@ -148,12 +177,12 @@ if b_plot:
     (lost1,xys1) = plotResults(path, hist1, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost2,xys2) = plotResults(path, hist2, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost3,xys3) = plotResults(path, hist3, dictGrids, b_useNewDG, learningRate, note=anote)
-    (lost4,xys4) = plotResults(path, hist4, dictGrids, b_useNewDG, learningRate, note=anote)
+#    (lost4,xys4) = plotResults(path, hist4, dictGrids, b_useNewDG, learningRate, note=anote)
 
 #    savefig('out/run.eps')
  
-    #plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
-    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote, resultsFolder="Results")
+    plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
+    #plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote, resultsFolder="Results")
 
     ##figure()
     ##drawMaze()
@@ -181,8 +210,7 @@ if b_plot:
 
 
 
-# --------- "Test" phase (new path, but reuse training weights etc)
-T_test = 100
+
 testPath = Paths(dictNext,N_mazeSize, T_test)          #a random walk through the maze -- a list of world states (not percepts)
 (ecs_gnd, dgs_gnd, ca3s_gnd) = testPath.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path, for plotting only
 
@@ -199,8 +227,8 @@ if b_inference:
     random.seed(SEED) ;  np.random.seed(SEED)
     hist3 = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_ideal, WR_ideal, WS_ideal, WO_ideal, dghelper, b_obsOnly=b_obsOnly,  b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids, b_useSub=b_useSub, str_title="Handset", b_learn=b_learn)
 
-    random.seed(SEED) ;  np.random.seed(SEED)
-    hist4  = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_rand0,  WR_rand0,  WS_rand0, WO_rand0, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Random0", b_learn=b_learn)
+#    random.seed(SEED) ;  np.random.seed(SEED)
+#    hist4  = makeMAPPredictions(testPath,dictGrids, dictSenses, WB_rand0,  WR_rand0,  WS_rand0, WO_rand0, dghelper, b_obsOnly=b_obsOnly, b_usePrevGroundTruthCA3=b_usePrevGroundTruthCA3,  b_useGroundTruthGrids=b_useGroundTruthGrids,  b_useSub=b_useSub, str_title="Random0", b_learn=b_learn)
 
 print "DONE"
 
@@ -209,7 +237,7 @@ if b_plot:
     (lost1,xys1) = plotResults(testPath, hist1, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost2,xys2) = plotResults(testPath, hist2, dictGrids, b_useNewDG, learningRate, note=anote)
     (lost3,xys3) = plotResults(testPath, hist3, dictGrids, b_useNewDG, learningRate, note=anote)
-    (lost4,xys4) = plotResults(testPath, hist4, dictGrids, b_useNewDG, learningRate, note=anote)
-    plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote,resultsFolder="ResultsTest")
-    #plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
+#    (lost4,xys4) = plotResults(testPath, hist4, dictGrids, b_useNewDG, learningRate, note=anote)
+    #plotErrors4(hist1, hist2, hist3, hist4, lost1, lost2, lost3, lost4, learningRate, surfTest=b_useNewDG, note=anote,resultsFolder="ResultsTest")
+    plotErrors(hist1, hist2, hist3, lost1, lost2, lost3, learningRate, surfTest=b_useNewDG, note=anote)
     show()

@@ -82,17 +82,30 @@ for t in range(0,T):
 
     p_odom   = boltzmannProbs(WO.transpose(), v_ca3_hat) #probs for CA1 cells
     p_senses = boltzmannProbs(WS.transpose(), v_ca3_hat) #probs for CA1 cells
-    ca1 = CA1State(p_odom, p_senses)
-    loc = Location()
-    loc.setGrids(ca1.grids, dictGrids)
+    # Luke commented    
+    # ca1 = CA1State(p_odom, p_senses)
+    # Luke added
+    ca1 = CA1State(dictGrids, p_odom, p_senses)
+    # Luke commented    
+    # loc = Location()
+    # loc.setGrids(ca1.grids, dictGrids)    
+    # Luke added
+    loc = Location(dictGrids)
+    loc.setGrids(ca1.grids)
     xy_hat[t,:] = loc.getXY()
     
 
     #get ground truth xy, from decoding ground truth hids?
     p_odom   = boltzmannProbs(WO.transpose(), v_ca3_gnd) #probs for CA1 cells
     p_senses = boltzmannProbs(WS.transpose(), v_ca3_gnd) #probs for CA1 cells
-    ca1 = CA1State(p_odom, p_senses)
-    loc = Location()
+    # Luke commented    
+    # ca1 = CA1State(p_odom, p_senses)
+    # Luke added
+    ca1 = CA1State(dictGrids, p_odom, p_senses)
+    # Luke commented    
+    # loc = Location()
+    # Luke added
+    loc = Location(dictGrids)
     loc.setGrids(ca1.grids, dictGrids)
     xy_gnd[t,:] = loc.getXY()
     
