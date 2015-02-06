@@ -1,6 +1,10 @@
 from rbm import ECState, boltzmannProbs, fuse, DGState, CA3StateFromVector, CA1State
 import numpy as np
 
+
+## Luke addition
+from locationLuke import Location
+
 SEED=2942875  #95731  #73765
 #np.random.seed(SEED)    #careful, these are different RNGs!
 np.random.seed(SEED)
@@ -53,18 +57,28 @@ def makeMAPPredictions(path,dictGrids, dictSenses, WB, WR, WS, WO, dghelper, b_o
             ec.hd = []        #kill old values to prevent any bugs creeping in!
             ec.placeCells=[]
             b_odom = sum(path.posLog[t,0:2] != path.posLog[t-1  ,0:2])>0    #have I moved?
-            d_th    = (path.posLog[t,2] - path.posLog[t-1,2])%4             #have I rotated, which dir?
+            d_th    = (path.posLog[t,2] - path.posLog[t-1,2])%4             #have I rotated, which dir in rads?!??
             
             #TODO add realistic odom noise here!!!!
-
             p_noise = 0.05
             if np.random.random() < p_noise:
                 b_odom = not b_odom
             if np.random.random() < p_noise:
                 d_th = (d_th + (-1)**(np.floor(2*np.random.random())) )%4
-
+            
+            # Luke -> Rewrite these to be more simple!
+            # Luke COMMENTED
             ec.updateGrids(ca1.grids, ca1.hd, b_odom, path.N_mazeSize, dictGrids)    #overwrite grids with odom (NB uses PREVIOUS hd)
             ec.updateHeading(ca1.hd, d_th) 
+            # Luke loads of hacks.....
+            #print "Luke fixed hd and grids here.... no noise!"            
+            #ec.hd=np.zeros((4),dtype="int16")
+            #ec.hd[path.posLog[t,2]]=1
+            #loc=Location(dictGrids)        
+            #loc.setXY(path.posLog[t,0],path.posLog[t,1])          
+            #ec.grids=loc.getGrids()
+            #ec.grids=np.array([[ 0.,  1.,  0.],[ 0.,  1.,  0.]])
+            #ec.grids=ca1.grids
 
         (dg, ca3, ca1,  sub_err, sub_int, sub_fire) = makeMAPPredictionsStep(dictGrids, ec, ca3, ca3s_gnd[t-1], sub_int, WB, WR, WS, WO,  b_obsOnly, b_usePrevGroundTruthCA3, b_useSub, dghelper)
 

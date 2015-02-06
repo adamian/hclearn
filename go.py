@@ -54,7 +54,7 @@ else:
 
 #----- Configuration -------------
 N_mazeSize=3
-T=30000 #30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=500 #30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
@@ -64,7 +64,7 @@ tr_epochs=5 #10
 use_lights_and_colours=False # true = on, false=off
 
 # --------- "Test" phase (new path, but reuse training weights etc)
-T_test = 3000 #3000 # Was 3000 Should be 100
+T_test = 100 #3000 # Was 3000 Should be 100
 
 # If true then it'll attempt to load the maze (corresponding to the same set of configurations) 
 # from a file. If the file doesn't exist, the algorithm will save the maze for future use.

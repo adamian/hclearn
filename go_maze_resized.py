@@ -46,7 +46,7 @@ b_useGroundTruthGrids = False  # Original: False
 ## Plot final outpts
 b_plot = True # Original: True
 ## luke -> Plot mazes after load and enter interactive mode...
-plot_maze = False  # Original: False
+plot_maze = True  # Original: False
 ## luke -> Plot mazes and wonder round using learning paths...
 plot_paths = False  # Original: False
 

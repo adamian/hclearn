@@ -54,7 +54,7 @@ class Paths:
     def getGroundTruthFiring(self,dictSenses,dictGrids,N_mazeSize,t,dghelper=None):
 
          loc        = self.posLog[t,:] # Location info as x,y,dir
-         lightState = np.zeros(1,dtype='i1') #self.lightStateLog[t,0]     #which physical light (eg 
+         lightState = self.posLog[t,2]#self.lightStateLog[t,0]  # Luke MOD??  np.zeros(1,dtype='i1')  #which physical light (eg 
          lightAhead = np.zeros(1,dtype='i1') #self.lightAheadLog[t,0]
          senses = dictSenses[tuple(loc)]    # Get mtching location info -> senses....
          

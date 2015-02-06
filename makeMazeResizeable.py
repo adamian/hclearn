@@ -323,8 +323,8 @@ def displayMaze(prefixFolder = None, dictSenses=None, dictGrids=None, dictNext=N
     # Display maze - TESTING
     maze_data.display_maps_images()
     ### User interative mode -> Use keys Exit:'ESC' FD:W BK:A LEFT:S RIGHT:D
-    #maze_data.maze_interactive()
-    maze_data.maze_interactive(dictSenses, dictGrids, dictNext, dictAvailableActions)
+    maze_data.maze_interactive()
+    #maze_data.maze_interactive(dictSenses, dictGrids, dictNext, dictAvailableActions)
     #maze_data.maze_walk()
 
     
