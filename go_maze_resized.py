@@ -48,7 +48,7 @@ else:
 #----- Configuration -------------
 ## N_mazeSize=3 -> THIS NOW AUTOMATICALLY GENERATED!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-T=30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=500   #trained on 30000   #better to have one long path than mult epochs on overfit little path
 b_learnWeights=True
 b_plot=True
 b_inference=True
@@ -58,17 +58,19 @@ tr_epochs=10
 # Notice that makeMaze must have some radomness, because multiple runs of go.py return different results.
 
 ## luke -> Plot mazes after load and enter interactive mode...
-plot_maze=False
-plot_paths=False
+plot_maze=True # Interactive mode where you move around the mze....
+save_images_interactive_maze=False # save images from your movements around the maze....
+plot_paths=False # Use generate paths to travel around the maze
+save_images_path_maze=True # save images from your movements around the maze....
 
 pickle_maze = True # True # True
-imFolder ="DCSCourtyard" #"division_street_1" # "DCSCourtyard" #"division_street_1" #"DivisionCarver" #DCSCourtyard"
+imFolder ="division_street_1" # "DCSCourtyard" #"division_street_1" #"DivisionCarver" #DCSCourtyard"
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
 
 # Luke added to graphically display maze....
 if plot_maze:
-    displayMaze(prefixFolder=fullImageFolder)
+    displayMaze(prefixFolder=fullImageFolder,save_images=save_images_interactive_maze, save_dir=fullImageFolder) # ,save_dir) add extra argument for dir to save image files....
     
 
 pickled_maze_name = "maze_SEED" + str(SEED) + "_DG" + str(int(b_useNewDG)) +  "_imdir" + imFolder + ".pickle"
@@ -102,8 +104,8 @@ start_location=np.asarray(dictSenses.keys()[0])
 path_config = Paths(dictNext,N_mazeSize, T, start_location)          #a random walk through the maze -- a list of world states (not percepts)
 
 ## Luke added to plot paths on maze..... Part of testing larger mazes.....
-if plot_maze and plot_paths:
-    displayPaths(fullImageFolder, path_config.posLog)
+if plot_paths:
+    displayPaths(fullImageFolder, path_config.posLog, save_images=save_images_path_maze,save_dir=fullImageFolder) # ,save_dir) add extra argument for dir to save image files....
     
 (ecs_gnd, dgs_gnd, ca3s_gnd) = path_config.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path_config, for plotting only
 

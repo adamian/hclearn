@@ -94,7 +94,7 @@ def findSurfs(x,y,direction,SURFdict):
 def makeMaze(b_useNewDG=False, prefixFolder = None):
 
     # Set up maze data loader
-    maze_data=maze_from_data(prefixFolder)
+    maze_data=maze_from_data(prefixFolder) # Original version   
     # Load data from folder     
     maze_data.index_image_files()
     # Display maze - TESTING
@@ -298,9 +298,11 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
 #[dictSenses, dictAvailableActions, dictNext] = makeMaze(3)
 
 # Loads and plots the maze as a graphic + map of place cell id's and + map of current position
-def displayMaze(prefixFolder = None):
+def displayMaze(prefixFolder = None, save_images=False, save_dir=None):
     # Set up maze data loader
-    maze_data=maze_from_data(prefixFolder)
+    # maze_data=maze_from_data(prefixFolder) # Original version   
+    # Luke updated for image saving!
+    maze_data=maze_from_data(prefixFolder,save_images, save_dir)
     # Load data from folder     
     maze_data.index_image_files()
     # Display maze - TESTING
@@ -310,9 +312,11 @@ def displayMaze(prefixFolder = None):
     #maze_data.maze_walk()
 
     
-def displayPaths(prefixFolder = None, paths=None):
+def displayPaths(prefixFolder = None, paths=None, save_images=False, save_dir=None):
     # Set up maze data loader
-    maze_data=maze_from_data(prefixFolder)
+    # maze_data=maze_from_data(prefixFolder) # Original version   
+    # Luke updated for image saving!
+    maze_data=maze_from_data(prefixFolder,save_images, save_dir)
     # Load data from folder     
     maze_data.index_image_files()
     # Display maze - TESTING

@@ -30,7 +30,7 @@ from collections import Counter
 
 class maze_from_data:
     #Requires the folder name
-    def __init__(self, folderName = 'D:/robotology/hclearn/division_street_1' ):
+    def __init__(self, folderName = 'D:/robotology/hclearn/division_street_1',save_images=False, save_image_dir='D:/robotology/hclearn/movie_images'):
         self.folder = folderName
         # Path to images FORWARD SLASHES 
         self.heading_index='NESW' #N=0, E=1, S=2, W=3
@@ -48,6 +48,17 @@ class maze_from_data:
         self.pixel_width=600#200
         self.locations_unique=dict()
         self.step_time_delay=100
+        
+        ## Option to save images recorded from each frame of the maze...
+        self.save_images=save_images
+        # Dir (inside of the sent folder) to save images
+        self.save_image_dir=save_image_dir        
+        ## Make save images directory if it doesnt exist
+        if self.save_images:
+            if not os.path.isdir(self.save_image_dir):
+                print 'Making directory: '+self.save_image_dir
+                os.mkdir(self.save_image_dir)                              
+            print 'Saving Images to ' +self.save_image_dir
         
         ### Check heading is range.....
     def phase_wrap_heading(self,heading):
@@ -206,7 +217,8 @@ class maze_from_data:
         
         cv2.putText(image_in, self.heading_index[heading_ind], (0+(textsize[0][1]/2),\
             30+int(textsize[1]/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.8,(0,0,255),2);        
-        cv2.imshow(self.window_name, image_in)
+        cv2.imshow(self.window_name, image_in)        
+        return image_in
         
     def make_grid_index(self,x=8,y=8, pixel_width=200):
         "Draw an x(i) by y(j) chessboard using PIL."
@@ -507,7 +519,7 @@ class maze_from_data:
             return(0)
 
         
-    def display_maps_images(self):    
+    def display_maps_images(self):     # Loads and initialises image data for visual mapping
         
         ## Load image data from folder
         self.load_image_files()
@@ -589,7 +601,9 @@ class maze_from_data:
         ## Windows to display graphics
         # Updated map of maze and current location
         cv2.namedWindow(self.maze_map)
+        
         self.map_template=self.plot_exisiting_locations_on_grid(self.map_template)
+        
         cv2.waitKey(100)
         # Main image display
         #cv2.namedWindow(self.window_name)
@@ -602,20 +616,29 @@ class maze_from_data:
         # plot Place cells on the map
         cv2.waitKey(100)
         ### Put current location on map
+        # Luke commnted dont save first location!
+        #cv2.imshow(self.maze_map,self.map_template)   
         self.plot_current_position_on_map(self.location_x,self.location_y)
         cv2.waitKey(100)
+
         if sys.platform[0:5] == 'linux':
             print 'Press any key to continue...'
             raw_input()
         
     def maze_interactive(self):
-        
+        if self.save_images:
+            # Make directory for interactive walking around the maze (maze_interactive)
+            self.save_image_dir_interactive=os.path.join(self.save_image_dir,'maze_interactive')
+            if not os.path.isdir(self.save_image_dir_interactive):
+                print 'Making directory: '+self.save_image_dir_interactive
+                os.mkdir(self.save_image_dir_interactive)   
         # get base x, y locations
         new_location_x=self.location_x
         new_location_y=self.location_y
         
         try:
             ### Wait for key to update
+            location_count=0
             while True:
                 k = cv2.waitKey(0) & 0xFF
                 if k == 27: # ESC
@@ -638,9 +661,9 @@ class maze_from_data:
                         new_location_y -=self.direction_vector[1]
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                        self.plot_current_position_on_map(new_location_x,new_location_y)
+                        displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)
                 elif k == ord('s'): # s= backwards
                     #image = image[::-1]
                     old_location_x=new_location_x
@@ -654,9 +677,9 @@ class maze_from_data:
                         new_location_y +=self.direction_vector[1]
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                        self.plot_current_position_on_map(new_location_x,new_location_y)
+                        displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)
                 elif k == ord('a'): # ,<= left
                     #image = image[::-1]
                     #new_location_x -=1
@@ -667,7 +690,7 @@ class maze_from_data:
                         #new_location_x +=1
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
                 elif k == ord('d'): # .>= right
                     #image = image[::-1]
@@ -679,23 +702,42 @@ class maze_from_data:
                         #new_location_x +=1
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+                        ## Save each image....
+                if self.save_images:
+                    image_filename=os.path.join(self.save_image_dir_interactive,'maze_img_'+ str(location_count).zfill(5) + '.jpg')
+                    cv2.imwrite(image_filename,image_displayed)
+                    map_filename=os.path.join(self.save_image_dir_interactive,'map_img_'+ str(location_count).zfill(5) + '.jpg')
+                    cv2.imwrite(map_filename,displayed_map)
+                    print 'Saving viewed image to: '+ image_filename + '& map image to: '+ map_filename                    
+                    
+                location_count+=1
         except KeyboardInterrupt:
             pass
     
     # Iterate around the maze either using random stepping or generated from paths.poslog    
     def maze_walk(self, random=True, paths=0):
-        
+        if self.save_images:
+            # Make directory for path driven moves around maze 
+            self.save_image_dir_path=os.path.join(self.save_image_dir,'maze_path')
+            if not os.path.isdir(self.save_image_dir_path):
+                print 'Making directory: '+self.save_image_dir_path
+                os.mkdir(self.save_image_dir_path)
+        # Reset map....
+        self.map_template=np.zeros((self.pixel_width,self.pixel_width,3),dtype='u1').copy() # default black
+        self.map_template=self.plot_exisiting_locations_on_grid(self.map_template)
+        cv2.imshow(self.maze_map,self.map_template)
+        cv2.waitKey(100)
         # Depending on mode
         if random:
             new_location_x=self.location_x
             new_location_y=self.location_y
-            
+            location_count=0
             try:
                 ### Wait for key to update
-                #while True: # AD commented
-                while location_count < paths.shape[0]-1: # AD
+                while True: # AD commented # LB not needed here as its random & not using the path....
+                #while location_count < paths.shape[0]-1: # AD
                 # k = cv2.waitKey(0) & 0xFF
                 # Delay here for each cycle through the maze.....
                     k=cv2.waitKey(self.step_time_delay) & 0xFF
@@ -766,6 +808,7 @@ class maze_from_data:
                             resized_img=self.concatenate_resize_images(images_to_combine)
                             self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                             #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+                    location_count+=1
                 cv2.destroyAllWindows()
             except KeyboardInterrupt:
                 pass
@@ -788,10 +831,17 @@ class maze_from_data:
                 new_location_y -=self.direction_vector[1]
             else:
                 resized_img=self.concatenate_resize_images(images_to_combine)
-                self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
-                self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                self.plot_current_position_on_map(new_location_x,new_location_y)            
+                image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                # LB removed                
+                #self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
+                displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)            
             
+            if self.save_images:
+                image_filename=os.path.join(self.save_image_dir_path,'maze_img_'+ str(location_count).zfill(5) + '.jpg')
+                cv2.imwrite(image_filename,image_displayed)
+                map_filename=os.path.join(self.save_image_dir_path,'map_img_'+ str(location_count).zfill(5) + '.jpg')
+                cv2.imwrite(map_filename,displayed_map)
+                print 'Saving viewed image to: '+ image_filename + '& map image to: '+ map_filename  
             # This needs to be sorted to allowing sending on values for the next location to move to....
             try:
                 ### Wait for key to update
@@ -824,12 +874,20 @@ class maze_from_data:
 #                        new_location_y -=self.direction_vector[1]
 #                    else:
                     resized_img=self.concatenate_resize_images(images_to_combine)
-                    self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                    image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                     self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                    self.plot_current_position_on_map(new_location_x,new_location_y)
+                    displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)
+                    
+                    if self.save_images:
+                        image_filename=os.path.join(self.save_image_dir_path,'maze_img_'+ str(location_count).zfill(5) + '.jpg')
+                        cv2.imwrite(image_filename,image_displayed)
+                        map_filename=os.path.join(self.save_image_dir_path,'map_img_'+ str(location_count).zfill(5) + '.jpg')
+                        cv2.imwrite(map_filename,displayed_map)
+                        print 'Saving viewed image to: '+ image_filename + '& map image to: '+ map_filename                       
+                    
                 cv2.destroyAllWindows()
             except KeyboardInterrupt:
-                pass            
+                pass
         
 if __name__ == '__main__':
     print('FRED')
