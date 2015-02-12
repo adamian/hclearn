@@ -35,7 +35,7 @@ from collections import OrderedDict
 
 class maze_from_data:
     #Requires the folder name
-    def __init__(self, folderName = 'D:/robotology/hclearn/division_street_1' ):
+    def __init__(self, folderName = 'D:/robotology/hclearn/division_street_1',save_images=False, save_image_dir='D:/robotology/hclearn/movie_images'):
         self.folder = folderName
         # Path to images FORWARD SLASHES 
         self.heading_index='NESW' #N=0, E=1, S=2, W=3
@@ -55,6 +55,17 @@ class maze_from_data:
         self.locations_unique=dict()
         self.step_time_delay=100
         
+        ## Option to save images recorded from each frame of the maze...
+        self.save_images=save_images
+        # Dir (inside of the sent folder) to save images
+        self.save_image_dir=save_image_dir        
+        ## Make save images directory if it doesnt exist
+        if self.save_images:
+            if not os.path.isdir(self.save_image_dir):
+                print 'Making directory: '+self.save_image_dir
+                os.mkdir(self.save_image_dir)                              
+            print 'Saving Images to ' +self.save_image_dir
+                
         ### Check heading is range.....
     def phase_wrap_heading(self,heading):
         while True:
@@ -213,6 +224,7 @@ class maze_from_data:
         cv2.putText(image_in, self.heading_index[heading_ind], (0+(textsize[0][1]/2),\
             30+int(textsize[1]/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.8,(0,0,255),2);        
         cv2.imshow(self.window_name, image_in)
+        return image_in
         
     def make_grid_index(self,x=8,y=8, pixel_width=200):
         "Draw an x(i) by y(j) chessboard using PIL."
@@ -341,7 +353,7 @@ class maze_from_data:
 #        print 'HOLDING'
         return currentInfo
         
-    def add_text_to_status(self, currentInfo):
+    def add_text_to_status(self, currentInfo, display_text_image=True):
 
         def put_text_on_image(text,image_in,current_row,pixel_width):
             textsize=cv2.getTextSize(text,cv2.FONT_HERSHEY_SIMPLEX,0.8,2)
@@ -357,16 +369,17 @@ class maze_from_data:
                     end_point=len(text)
                 text_out=text[current_line*str_steps:end_point]
                 cv2.putText(image_in, text_out, (0+(textsize[0][1]/2),\
-                    int((textsize[0][1]*2*(current_row+current_line))+textsize[0][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.6,(0,0,0),1); 
+                    int((textsize[0][1]*2*(current_row+current_line))+textsize[0][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.7,(255,255,255),2); 
             return text_lines
         # Blank image
-        text_image=np.zeros((self.pixel_width,self.pixel_width,3),dtype='u1')+255 # default black
+        text_image=np.zeros((self.pixel_width,self.pixel_width*1.5,3),dtype='u1') # default black
         text_count=0
         for current_info in currentInfo:        
             text_lines=put_text_on_image(current_info+': '+currentInfo[current_info],text_image,text_count,self.pixel_width)            
             text_count+=text_lines
-        
-        cv2.imshow(self.text_display,text_image)
+        if display_text_image:
+            cv2.imshow(self.text_display,text_image)
+        return text_image
     
     ###### START OF MAIN
     ########################################
@@ -667,8 +680,6 @@ class maze_from_data:
             raw_input()
         
     def maze_interactive(self, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
-        
-        
         print '--- PRESS >>>>>'
         print '--- ESC to exit'
         print '--- i for dictionary of tile information'
@@ -676,15 +687,24 @@ class maze_from_data:
         print '--- s to move BACKWARD'
         print '--- a to move LEFT'
         print '--- d to move RIGHT'
-        # Show Dict / image info.....        
-        dict_flag=False                
         
+        if self.save_images:
+            # Make directory for interactive walking around the maze (maze_interactive)
+            self.save_image_dir_interactive=os.path.join(self.save_image_dir,'maze_interactive')
+            if not os.path.isdir(self.save_image_dir_interactive):
+                print 'Making directory: '+self.save_image_dir_interactive
+                os.mkdir(self.save_image_dir_interactive)          
+        # Show Dict / image info.....        
+        show_dict_flag=True        # Now on by default         
+        cv2.namedWindow(self.text_display)
         # get base x, y locations
         new_location_x=self.location_x
         new_location_y=self.location_y
         
+        image_success_flag=0
         try:
             ### Wait for key to update
+            location_count=0
             while True:
                 k = cv2.waitKey(0) & 0xFF
                 if k == 27: # ESC
@@ -694,12 +714,12 @@ class maze_from_data:
             #        cv2.imwrite('/Users/chris/foo.png', gray_img)
             #        cv2.destroyAllWindows()
             #        break
-                elif k == 105: # i # LB -> This turns dictionary display on
-                    if dict_flag: # Turn dict display on
-                        dict_flag=False
+                elif k == ord('i'):#105: # i # LB -> This turns dictionary display on
+                    if show_dict_flag: # Turn dict display on
+                        show_dict_flag=False
                         cv2.destroyWindow(self.text_display)
                     else:
-                        dict_flag=True
+                        show_dict_flag=True
                         cv2.namedWindow(self.text_display)
                 elif k == ord('w'): # w=forwards
                     #image = image[::-1]
@@ -714,9 +734,10 @@ class maze_from_data:
                         new_location_y -=self.direction_vector[1]
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                        self.plot_current_position_on_map(new_location_x,new_location_y)
+                        displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)
+                        image_success_flag=1
                 elif k == ord('s'): # s= backwards
                     #image = image[::-1]
                     old_location_x=new_location_x
@@ -730,9 +751,10 @@ class maze_from_data:
                         new_location_y +=self.direction_vector[1]
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                        self.plot_current_position_on_map(new_location_x,new_location_y)
+                        displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)
+                        image_success_flag=1
                 elif k == ord('a'): # ,<= left
                     #image = image[::-1]
                     #new_location_x -=1
@@ -743,8 +765,9 @@ class maze_from_data:
                         #new_location_x +=1
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
+                        image_success_flag=1
                 elif k == ord('d'): # .>= right
                     #image = image[::-1]
                     #new_location_x -=1
@@ -755,12 +778,26 @@ class maze_from_data:
                         #new_location_x +=1
                     else:
                         resized_img=self.concatenate_resize_images(images_to_combine)
-                        self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                        image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                         #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
-                if dict_flag: 
+                        image_success_flag=1
+                #if dict_flag: 
                     # Dict information
-                    current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, 0, dictSenses, dictGrids, dictNext, dictAvailableActions)
-                    self.add_text_to_status(current_info)        
+                current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, location_count, dictSenses, dictGrids, dictNext, dictAvailableActions)
+                dict_text_image=self.add_text_to_status(current_info,show_dict_flag) # Wont display image if turned off....
+                
+                if self.save_images and image_success_flag:
+                    image_filename=os.path.join(self.save_image_dir_interactive,'maze_img_'+ str(location_count).zfill(5) + '.jpg')
+                    cv2.imwrite(image_filename,image_displayed)
+                    map_filename=os.path.join(self.save_image_dir_interactive,'map_img_'+ str(location_count).zfill(5) + '.jpg')
+                    cv2.imwrite(map_filename,displayed_map)
+                    dict_image_filename=os.path.join(self.save_image_dir_interactive,'dict_img_'+ str(location_count).zfill(5) + '.jpg')
+                    cv2.imwrite(dict_image_filename,dict_text_image)
+                    print 'Saving viewed image to: '+ image_filename +\
+                        ' & map to: '+ map_filename +\
+                        ' & dict to: '+ dict_image_filename
+                location_count+=1                    
+                    
         except KeyboardInterrupt:
             pass
     
@@ -777,8 +814,22 @@ class maze_from_data:
         print '--- i for dictionary of tile information'
         print '--- p to pause'
         print '--- s to step'
+        if self.save_images:
+            # Make directory for path driven moves around maze 
+            self.save_image_dir_path=os.path.join(self.save_image_dir,'maze_path')
+            if not os.path.isdir(self.save_image_dir_path):
+                print 'Making directory: '+self.save_image_dir_path
+                os.mkdir(self.save_image_dir_path)
+        # Reset map....
+        self.map_template=np.zeros((self.pixel_width,self.pixel_width,3),dtype='u1').copy() # default black
+        self.map_template=self.plot_exisiting_locations_on_grid(self.map_template)
+        cv2.imshow(self.maze_map,self.map_template)
+        cv2.waitKey(100)
+        
         # Show Dict / image info.....        
-        dict_flag=False        
+        show_dict_flag=True        # Now on by default         
+        cv2.namedWindow(self.text_display)
+        
         time_delay=self.step_time_delay
         # Depending on mode
         if random:
@@ -802,12 +853,12 @@ class maze_from_data:
                 #        cv2.imwrite('/Users/chris/foo.png', gray_img)
                 #        cv2.destroyAllWindows()
                 #        break
-                    elif k == 105: # i # LB -> This turns dictionary display on
-                        if dict_flag: # Turn dict display on
-                            dict_flag=False
+                    elif k == ord('i'):#105: # i # LB -> This turns dictionary display on
+                        if show_dict_flag: # Turn dict display on
+                            show_dict_flag=False
                             cv2.destroyWindow(self.text_display)
                         else:
-                            dict_flag=True
+                            show_dict_flag=True
                             cv2.namedWindow(self.text_display)
                     elif k == 112: # p -> Pause
                         if time_delay==0: # Turn pause mode off
@@ -871,9 +922,9 @@ class maze_from_data:
                             resized_img=self.concatenate_resize_images(images_to_combine)
                             self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                             #map_image_display=plot_current_position_on_map(self.map_template,useable_grid_locations,new_location_x,new_location_y)
-                    if dict_flag:                    # Dict information
-                        current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, location_count, dictSenses, dictGrids, dictNext, dictAvailableActions)
-                        self.add_text_to_status(current_info)
+                    #if dict_flag:                    # Dict information
+                    current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, location_count, dictSenses, dictGrids, dictNext, dictAvailableActions)
+                    self.add_text_to_status(current_info, show_dict_flag)
                     location_count+=1
             except KeyboardInterrupt:
                 pass
@@ -896,9 +947,10 @@ class maze_from_data:
                 new_location_y -=self.direction_vector[1]
             else:
                 resized_img=self.concatenate_resize_images(images_to_combine)
-                self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
-                self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                self.plot_current_position_on_map(new_location_x,new_location_y)            
+                image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                # LB removed                
+                #self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
+                displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)            
             
             # This needs to be sorted to allowing sending on values for the next location to move to....
             try:
@@ -916,12 +968,12 @@ class maze_from_data:
                     if k == 27: # ESC
                         cv2.destroyAllWindows()
                         break
-                    elif k ==105: # i turn dict mode on or off
-                        if dict_flag:
-                            dict_flag=False
+                    elif k == ord('i'):#105: # i # LB -> This turns dictionary display on
+                        if show_dict_flag: # Turn dict display on
+                            show_dict_flag=False
                             cv2.destroyWindow(self.text_display)
                         else:
-                            dict_flag=True
+                            show_dict_flag=True
                             cv2.namedWindow(self.text_display)
                     elif k == 112: # p -> Pause
                         if time_delay==0: # Turn pause mode off
@@ -947,15 +999,26 @@ class maze_from_data:
 #                        new_location_x -=self.direction_vector[0]
 #                        new_location_y -=self.direction_vector[1]
 #                    else:
-                    if dict_flag: 
-                        # Dict information
-                        current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, location_count, dictSenses, dictGrids, dictNext, dictAvailableActions)
-                        self.add_text_to_status(current_info)
+                    #if dict_flag: 
+                    # Dict information
+                    current_info=self.current_location_dict(new_location_x ,new_location_y , self.new_heading_ind, location_count, dictSenses, dictGrids, dictNext, dictAvailableActions)
+                    dict_text_image=self.add_text_to_status(current_info, show_dict_flag)
                     
                     resized_img=self.concatenate_resize_images(images_to_combine)
-                    self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
+                    image_displayed=self.display_image(resized_img, image_title, available_directions_index, self.new_heading_ind)
                     self.map_template=self.plot_old_position_on_map(old_location_x,old_location_y)
-                    self.plot_current_position_on_map(new_location_x,new_location_y)
+                    displayed_map=self.plot_current_position_on_map(new_location_x,new_location_y)
+                    if self.save_images:
+                        image_filename=os.path.join(self.save_image_dir_path,'maze_img_'+ str(location_count).zfill(5) + '.jpg')
+                        cv2.imwrite(image_filename,image_displayed)
+                        map_filename=os.path.join(self.save_image_dir_path,'map_img_'+ str(location_count).zfill(5) + '.jpg')
+                        cv2.imwrite(map_filename,displayed_map)
+                        dict_image_filename=os.path.join(self.save_image_dir_path,'dict_img_'+ str(location_count).zfill(5) + '.jpg')
+                        cv2.imwrite(dict_image_filename,dict_text_image)
+                        print 'Saving viewed image to: '+ image_filename +\
+                            ' & map to: '+ map_filename +\
+                            ' & dict to: '+ dict_image_filename                     
+                                    
                 cv2.destroyAllWindows()
             except KeyboardInterrupt:
                 pass            

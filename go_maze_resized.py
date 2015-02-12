@@ -49,11 +49,16 @@ b_plot = True # Original: True
 plot_maze = False  # Original: False
 ## luke -> Plot mazes and wonder round using learning paths...
 plot_paths = True  # Original: False
+## ------ Movies / Images luke -> Plot mazes after load and enter interactive mode...
+#plot_maze=True # Interactive mode where you move around the mze....
+save_images_interactive_maze=False # save images from your movements around the maze....
+#plot_paths=False # Use generate paths to travel around the maze
+save_images_path_maze=True
 
 #------------- Model Configuration -------------
 #@@@@@@@@@@@@@ Learning @@@@@@@@@@@
 ## Number of learning steps around the maze...
-T=30000   #trained on 30000   #better to have one long path than mult epochs on overfit little path
+T=1000  #trained on 30000   #better to have one long path than mult epochs on overfit little path
 ## Run new dentate gyrus code
 b_useNewDG = True  # Original: True
 ## Set overall learning rate
@@ -107,7 +112,7 @@ else:
 # Run generate_map_from_streetview.py if you want to get the streetview pics
 fullImageFolder = rootFolder + imFolder + "/"
 #-------------------------------------------
-
+ 
 # Luke added exception catch
 #try:
 
@@ -138,7 +143,7 @@ else:
 #dictGrids = DictGrids(dictPlaceCells,N_mazeSize)
 # Luke added to graphically display maze....
 if plot_maze:
-    displayMaze(fullImageFolder, dictSenses, dictGrids, dictNext, dictAvailableActions)
+    displayMaze(fullImageFolder, dictSenses=dictSenses, dictGrids=dictGrids, dictNext=dictNext, dictAvailableActions=dictAvailableActions ,save_images=save_images_interactive_maze, save_dir=fullImageFolder)
 
 # Luke Modified -> use start from first location in DictSenses
 #start_location=[3,3,0] # Original setting in paths.py
@@ -148,8 +153,8 @@ path_config = Paths(dictNext,dictGrids.Nmax, T, start_location)          #a rand
 
 ## Luke added to plot paths on maze..... Part of testing larger mazes.....
 if plot_paths:
-    displayPaths(fullImageFolder, path_config.posLog, dictSenses, dictGrids, dictNext, dictAvailableActions)
-    
+    displayPaths(fullImageFolder, path_config.posLog, dictSenses=dictSenses, dictGrids=dictGrids, dictNext=dictNext, dictAvailableActions=dictAvailableActions, save_images=save_images_path_maze,save_dir=fullImageFolder) # ,save_dir) add extra argument for dir to save image files....
+     
 #(ecs_gnd, dgs_gnd, ca3s_gnd) = path_config.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path_config, for plotting only
 (ecs_gnd, dgs_gnd, ca3s_gnd) = path_config.getGroundTruthFirings(dictSenses, dictGrids)  #ideal percepts for path_config, for plotting only
 

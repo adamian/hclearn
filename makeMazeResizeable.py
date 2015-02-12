@@ -309,27 +309,27 @@ def makeMaze(b_useNewDG=False, prefixFolder = None):
 #[dictSenses, dictAvailableActions, dictNext] = makeMaze(3)
 
 # Loads and plots the maze as a graphic + map of place cell id's and + map of current position
-def displayMaze(prefixFolder = None, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
+def displayMaze(prefixFolder = None, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None , save_images=False, save_dir=None):
     # Set up maze data loader
-    maze_data=maze_from_data(prefixFolder)
+    # maze_data=maze_from_data(prefixFolder) # Original version   
+    # Luke updated for image saving!
+    maze_data=maze_from_data(prefixFolder,save_images, save_dir)
     # Load data from folder     
     maze_data.index_image_files()
     # Display maze - TESTING
     maze_data.display_maps_images()
     ### User interative mode -> Use keys Exit:'ESC' FD:W BK:A LEFT:S RIGHT:D
-    #maze_data.maze_interactive()
     maze_data.maze_interactive(dictSenses, dictGrids, dictNext, dictAvailableActions)
     #maze_data.maze_walk()
 
     
-def displayPaths(prefixFolder = None, paths=None, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None):
+def displayPaths(prefixFolder = None, paths=None, dictSenses=None, dictGrids=None, dictNext=None, dictAvailableActions=None, save_images=False, save_dir=None):
     # Set up maze data loader
-    maze_data=maze_from_data(prefixFolder)
+    # maze_data=maze_from_data(prefixFolder) # Original version   
+    # Luke updated for image saving!
+    maze_data=maze_from_data(prefixFolder,save_images, save_dir)
     # Load data from folder     
     maze_data.index_image_files()
-    
-#    current_info=maze_data.current_location_dict(0 ,0 , 0, 0, dictSenses, dictGrids, dictNext, dictAvailableActions)
-#    maze_data.add_text_to_status(current_info)    
     # Display maze - TESTING
     maze_data.display_maps_images()
     ### User interative mode -> Use keys Exit:'ESC' FD:W BK:A LEFT:S RIGHT:D
@@ -337,7 +337,6 @@ def displayPaths(prefixFolder = None, paths=None, dictSenses=None, dictGrids=Non
     #maze_data.maze_walk()
     # Run interactive mode but iterate around the locations    
     maze_data.maze_walk(False,paths, dictSenses, dictGrids, dictNext, dictAvailableActions)
-    
     
     
     
