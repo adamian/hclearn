@@ -17,6 +17,9 @@ import cPickle as pickle
 import os.path
 from collections import OrderedDict
 
+# For active learning (AD)
+from explore_maze import ExploreMaze
+
 #if len(sys.argv) == 3:
 #    b_useNewDG = (sys.argv[1] == "True")
 #    learningRate = float(sys.argv[2])
@@ -54,6 +57,16 @@ plot_paths = True  # Original: False
 save_images_interactive_maze=False # save images from your movements around the maze....
 #plot_paths=False # Use generate paths to travel around the maze
 save_images_path_maze=True
+
+#------------------ Active Learning Options ----------------
+# Active learning on = Curiosity around the maze (likes novel locations)
+active_learning = False
+# Appended to path for saving images - blank does nothing
+active_learning_image_save_dir="active_learn_cur/"
+# Include momentum (likes going forwards...) -> Curiosity + Momentum
+bi_directional = False
+# Appended to path for saving images - blank does nothing
+bi_directional_image_save_dir="_mmtm/"
 
 #------------- Model Configuration -------------
 #@@@@@@@@@@@@@ Learning @@@@@@@@@@@
@@ -148,12 +161,39 @@ if plot_maze:
 # Luke Modified -> use start from first location in DictSenses
 #start_location=[3,3,0] # Original setting in paths.py
 start_location=np.asarray(dictSenses.keys()[0])
-###### N_mazesize generated!!!
-path_config = Paths(dictNext,dictGrids.Nmax, T, start_location)          #a random walk through the maze -- a list of world states (not percepts)
 
+###### N_mazesize generated!!!
+# Make random path
+path_config = Paths(dictNext,dictGrids.Nmax, T, start_location)          #a random walk through the maze -- a list of world states (not percepts)
+## Images save directory -> use maze image folder
+images_save_dir=fullImageFolder
+
+######### AD Active Learning Path code......
+#### Overwrites RANDOM path
+## Curiosity + Momentum
+if active_learning and bi_directional:
+    # Curiosity exploration with bi-directional paths, ie if we're in location loc.=[x y h] then we observe
+    # automatically all [x y h'] for all possible h'. Momentum says how biased to be for preserving heading if
+    # we end up in a situation where all neighbours are already visited (0 - 1)
+    e2 = ExploreMaze(dictNext, T, start_location,debug_log='deleteme2.log',momentum=0.5)
+    e2.walk_bidirect()
+    ## Overwrite original path
+    path_config.posLog = e2.posLog.copy()
+    ## Add extra directory to save dir
+    images_save_dir=os.path.join(fullImageFolder,active_learning_image_save_dir,bi_directional_image_save_dir)
+## Curiosity NO Momentum
+elif active_learning and not bi_directional:
+    # Curiosity exploration without bi-directional paths.
+    e = ExploreMaze(dictNext, T, start_location,debug_log='deleteme.log')
+    e.walk()
+    ## Overwrite original path
+    path_config.posLog = e.posLog.copy()
+    ## Add extra directory to save dir
+    images_save_dir=os.path.join(fullImageFolder,active_learning_image_save_dir)
+    
 ## Luke added to plot paths on maze..... Part of testing larger mazes.....
 if plot_paths:
-    displayPaths(fullImageFolder, path_config.posLog, dictSenses=dictSenses, dictGrids=dictGrids, dictNext=dictNext, dictAvailableActions=dictAvailableActions, save_images=save_images_path_maze,save_dir=fullImageFolder) # ,save_dir) add extra argument for dir to save image files....
+    displayPaths(fullImageFolder, path_config.posLog, dictSenses=dictSenses, dictGrids=dictGrids, dictNext=dictNext, dictAvailableActions=dictAvailableActions, save_images=save_images_path_maze,save_dir=images_save_dir) # ,save_dir) add extra argument for dir to save image files....
      
 #(ecs_gnd, dgs_gnd, ca3s_gnd) = path_config.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path_config, for plotting only
 (ecs_gnd, dgs_gnd, ca3s_gnd) = path_config.getGroundTruthFirings(dictSenses, dictGrids)  #ideal percepts for path_config, for plotting only
