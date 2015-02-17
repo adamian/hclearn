@@ -60,13 +60,17 @@ save_images_path_maze=True
 
 #------------------ Active Learning Options ----------------
 # Active learning on = Curiosity around the maze (likes novel locations)
-active_learning = False
+active_learning = True
+# The following only work if active_learning is True-
 # Appended to path for saving images - blank does nothing
 active_learning_image_save_dir="active_learn_cur/"
-# Include momentum (likes going forwards...) -> Curiosity + Momentum
-bi_directional = False
+# Include momentum (likes going forwards...) -> Curiosity + Momentum (Set 0 for no momentum)
+momentum = 0.8
+# Bi directional walk means that at location [x,y], all headings are acquired at once
+# (equivalent to the robot moving its head around before proceeding to next step).
+bi_directional = True
 # Appended to path for saving images - blank does nothing
-bi_directional_image_save_dir="_mmtm/"
+bi_directional_image_save_dir="_mmtm" + str(momentum) +"/"
 
 #------------- Model Configuration -------------
 #@@@@@@@@@@@@@ Learning @@@@@@@@@@@
@@ -170,21 +174,21 @@ images_save_dir=fullImageFolder
 
 ######### AD Active Learning Path code......
 #### Overwrites RANDOM path
-## Curiosity + Momentum
+## Curiosity + bidirectional walk
 if active_learning and bi_directional:
     # Curiosity exploration with bi-directional paths, ie if we're in location loc.=[x y h] then we observe
     # automatically all [x y h'] for all possible h'. Momentum says how biased to be for preserving heading if
     # we end up in a situation where all neighbours are already visited (0 - 1)
-    e2 = ExploreMaze(dictNext, T, start_location,debug_log='deleteme2.log',momentum=0.5)
-    e2.walk_bidirect()
+    eb = ExploreMaze(dictNext, T, start_location,debug_log='deleteme_b.log',momentum=momentum)
+    eb.walk_bidirect()
     ## Overwrite original path
-    path_config.posLog = e2.posLog.copy()
+    path_config.posLog = eb.posLog.copy()
     ## Add extra directory to save dir
     images_save_dir=os.path.join(fullImageFolder,active_learning_image_save_dir,bi_directional_image_save_dir)
-## Curiosity NO Momentum
+## Curiosity NO bi-directional walk
 elif active_learning and not bi_directional:
     # Curiosity exploration without bi-directional paths.
-    e = ExploreMaze(dictNext, T, start_location,debug_log='deleteme.log')
+    e = ExploreMaze(dictNext, T, start_location,debug_log='deleteme.log',momentum=momentum)
     e.walk()
     ## Overwrite original path
     path_config.posLog = e.posLog.copy()
@@ -194,7 +198,7 @@ elif active_learning and not bi_directional:
 ## Luke added to plot paths on maze..... Part of testing larger mazes.....
 if plot_paths:
     displayPaths(fullImageFolder, path_config.posLog, dictSenses=dictSenses, dictGrids=dictGrids, dictNext=dictNext, dictAvailableActions=dictAvailableActions, save_images=save_images_path_maze,save_dir=images_save_dir) # ,save_dir) add extra argument for dir to save image files....
-     
+
 #(ecs_gnd, dgs_gnd, ca3s_gnd) = path_config.getGroundTruthFirings(dictSenses, dictGrids, N_mazeSize)  #ideal percepts for path_config, for plotting only
 (ecs_gnd, dgs_gnd, ca3s_gnd) = path_config.getGroundTruthFirings(dictSenses, dictGrids)  #ideal percepts for path_config, for plotting only
 
