@@ -1,0 +1,9 @@
+
+Code update - make movies
+Integrated curiosity code into go_maze_resizeable.py (options to switch on / off and output the images to directories are at the top), I though it was all added correctly but please check!!!.
+
+The code will call the generate_maze_from_data.py...Using the path viewer it should generate and save images for the maze, dict and maps for each step in different subdirectories.....
+
+Then there is code to generate the movie (generate_maze_movie_from_stills.py all uses OpenCV), it has various options (directories where the files are....) and options to produce a movies with the 1st person maze navigation or all three maps at once or the three maps cascaded...
+
+May be platform and other bugs, but please give it a go.... (It currently encodes with XVID, but might be easier to use H264 in linux)
